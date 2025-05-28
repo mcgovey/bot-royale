@@ -1,85 +1,65 @@
-import React, { useEffect } from 'react';
-import { useGameStore } from './store/gameStore';
-import MainMenu from './components/MainMenu';
+import React, { useState } from 'react';
 import BotBuilder from './components/BotBuilder';
-import Matchmaking from './components/Matchmaking';
 import BattleArena from './components/BattleArena';
-import ResultsScreen from './components/ResultsScreen';
-import NotificationSystem from './components/NotificationSystem';
-import LoadingScreen from './components/LoadingScreen';
-import ConnectionStatus from './components/ConnectionStatus';
+import { ChassisType, WeaponType, SpecialType } from './types/game';
+
+type GameMode = 'builder' | 'battle';
+
+interface BotConfig {
+  chassis: ChassisType;
+  weapon: WeaponType;
+  special: SpecialType;
+  name: string;
+  primaryColor: string;
+  secondaryColor: string;
+}
 
 function App() {
-  const { uiState, setPlayer, setConnected } = useGameStore();
+  const [currentMode, setCurrentMode] = useState<GameMode>('builder');
+  const [botConfig, setBotConfig] = useState<BotConfig>({
+    chassis: ChassisType.BALANCED,
+    weapon: WeaponType.BLASTER,
+    special: SpecialType.SHIELD,
+    name: 'My Bot',
+    primaryColor: '#00f5ff',
+    secondaryColor: '#8b5cf6'
+  });
 
-  useEffect(() => {
-    // Initialize player data (in a real app, this would come from authentication)
-    const mockPlayer = {
-      id: 'player_1',
-      username: 'Commander',
-      level: 5,
-      rank: 'Bronze',
-      stats: {
-        gamesPlayed: 12,
-        wins: 7,
-        losses: 5,
-        kills: 23,
-        deaths: 18,
-        damageDealt: 5420,
-        damageTaken: 4230,
-        winRate: 0.58,
-        averageKDA: 1.28
-      },
-      isReady: false,
-      isConnected: true
-    };
+  const handleStartBattle = () => {
+    setCurrentMode('battle');
+  };
 
-    setPlayer(mockPlayer);
-    setConnected(true);
-  }, []); // Empty dependency array - only run once on mount
-
-  const renderCurrentScreen = () => {
-    switch (uiState.currentScreen) {
-      case 'menu':
-        return <MainMenu />;
-      case 'bot_builder':
-        return <BotBuilder />;
-      case 'matchmaking':
-        return <Matchmaking />;
-      case 'battle':
-        return <BattleArena />;
-      case 'results':
-        return <ResultsScreen />;
-      default:
-        return <MainMenu />;
-    }
+  const handleBackToBuilder = () => {
+    setCurrentMode('builder');
   };
 
   return (
-    <div className="App h-full w-full bg-dark-bg text-white overflow-hidden">
-      {/* Background Grid Effect */}
+    <div className="App h-screen w-full bg-dark-bg text-white overflow-hidden">
+      {/* Cyber Grid Background */}
       <div className="fixed inset-0 cyber-grid opacity-20 pointer-events-none" />
 
-      {/* Connection Status */}
-      <ConnectionStatus />
+      {/* Animated Background Particles */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-cyber-blue rounded-full animate-pulse opacity-60" />
+        <div className="absolute top-3/4 right-1/4 w-1 h-1 bg-cyber-green rounded-full animate-ping opacity-40" />
+        <div className="absolute bottom-1/4 left-1/3 w-1.5 h-1.5 bg-cyber-purple rounded-full animate-pulse opacity-50" />
+      </div>
 
       {/* Main Content */}
       <main className="relative z-10 h-full w-full">
-        {uiState.isLoading ? <LoadingScreen /> : renderCurrentScreen()}
+        {currentMode === 'builder' ? (
+          <BotBuilder
+            botConfig={botConfig}
+            setBotConfig={setBotConfig}
+            onStartBattle={handleStartBattle}
+          />
+        ) : (
+          <BattleArena
+            playerBot={botConfig}
+            onBackToBuilder={handleBackToBuilder}
+          />
+        )}
       </main>
-
-      {/* Notification System */}
-      <NotificationSystem />
-
-      {/* Error Display */}
-      {uiState.error && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50">
-          <div className="panel-cyber bg-cyber-red/20 border-cyber-red text-cyber-red">
-            <h3 className="font-bold">Error</h3>
-            <p>{uiState.error}</p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

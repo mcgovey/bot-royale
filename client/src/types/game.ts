@@ -1,4 +1,4 @@
-// Core game types for BattleBot Arena
+// Simplified game types for BattleBot Arena - Two Mode Version
 
 export interface Vector3 {
   x: number;
@@ -6,295 +6,109 @@ export interface Vector3 {
   z: number;
 }
 
-export interface Quaternion {
-  x: number;
-  y: number;
-  z: number;
-  w: number;
-}
-
-// Bot Component Types
+// Simplified Bot Component Types
 export enum ChassisType {
-  LIGHT = 'light',
-  MEDIUM = 'medium',
-  HEAVY = 'heavy'
+  SPEED = 'speed',    // Fast movement, low health (3 HP)
+  TANK = 'tank',      // Slow movement, high health (8 HP)
+  BALANCED = 'balanced' // Medium speed, medium health (5 HP)
 }
 
 export enum WeaponType {
-  LASER_CANNON = 'laser_cannon',
-  MISSILE_LAUNCHER = 'missile_launcher',
-  PLASMA_RIFLE = 'plasma_rifle',
-  RAIL_GUN = 'rail_gun'
+  BLASTER = 'blaster',   // Fast shots, low damage (1 damage)
+  CANNON = 'cannon',     // Slow shots, high damage (3 damage)
+  SHOTGUN = 'shotgun'    // Medium speed, medium damage (2 damage, short range)
 }
 
-export enum DefensiveModuleType {
-  ENERGY_SHIELD = 'energy_shield',
-  ARMOR_PLATING = 'armor_plating',
-  STEALTH_CLOAK = 'stealth_cloak'
+export enum SpecialType {
+  SHIELD = 'shield',       // Blocks one attack, 10-second cooldown
+  SPEED_BOOST = 'speed_boost', // Double speed for 3 seconds, 15-second cooldown
+  REPAIR = 'repair'        // Restore 2 HP, 20-second cooldown
 }
 
-export enum UtilityModuleType {
-  BOOST_THRUSTERS = 'boost_thrusters',
-  REPAIR_NANOBOTS = 'repair_nanobots',
-  SCANNER_ARRAY = 'scanner_array'
-}
-
-// Component Definitions
+// Simplified Component Stats
 export interface ChassisStats {
   health: number;
-  armor: number;
   speed: number;
-  weaponSlots: number;
-  energyCapacity: number;
-  mass: number;
 }
 
 export interface WeaponStats {
   damage: number;
-  range: number;
   fireRate: number; // shots per second
-  energyCost: number;
-  accuracy: number; // 0-1
-  projectileSpeed: number;
-  heatGeneration: number;
-  specialEffect?: string;
+  range: number;
 }
 
-export interface DefensiveModuleStats {
-  protection: number;
-  energyCost: number;
-  duration?: number; // for temporary effects
-  cooldown?: number;
-  massModifier: number;
-}
-
-export interface UtilityModuleStats {
+export interface SpecialStats {
+  cooldown: number; // seconds
+  duration?: number; // seconds (for temporary effects)
   effect: string;
-  energyCost: number;
-  cooldown: number;
-  duration?: number;
-  range?: number;
 }
 
-// Bot Configuration
-export interface BotComponent {
-  id: string;
-  type: ChassisType | WeaponType | DefensiveModuleType | UtilityModuleType;
-  position?: Vector3;
-  rotation?: Quaternion;
-  stats: ChassisStats | WeaponStats | DefensiveModuleStats | UtilityModuleStats;
-}
-
+// Simplified Bot Configuration
 export interface BotConfiguration {
   id: string;
   name: string;
-  chassis: BotComponent;
-  weapons: BotComponent[];
-  defensiveModules: BotComponent[];
-  utilityModules: BotComponent[];
+  chassis: ChassisType;
+  weapon: WeaponType;
+  special: SpecialType;
   customization: {
     primaryColor: string;
     secondaryColor: string;
-    pattern?: string;
-    decals?: string[];
   };
 }
 
-// Game State Types
+// Simplified Game State Types
 export interface BotState {
   id: string;
   playerId: string;
   configuration: BotConfiguration;
   position: Vector3;
-  rotation: Quaternion;
-  velocity: Vector3;
   health: number;
-  energy: number;
-  heat: number;
-  status: {
-    isAlive: boolean;
-    isShielded: boolean;
-    isCloaked: boolean;
-    isBoosting: boolean;
-    isOverheated: boolean;
-  };
-  activeEffects: ActiveEffect[];
+  maxHealth: number;
+  isAlive: boolean;
+  specialCooldown: number;
+  lastFired: number;
 }
 
-export interface ActiveEffect {
-  type: string;
-  duration: number;
-  intensity: number;
-  source: string;
-}
-
-export interface Projectile {
-  id: string;
-  type: WeaponType;
-  position: Vector3;
-  velocity: Vector3;
-  damage: number;
-  ownerId: string;
-  timeToLive: number;
-}
-
-export interface PowerUp {
-  id: string;
-  type: 'health' | 'energy' | 'weapon_boost' | 'shield_boost';
-  position: Vector3;
-  value: number;
-  duration?: number;
-}
-
-// Battle Types
+// Simplified Battle Types
 export enum GameMode {
-  QUICK_MATCH = 'quick_match',
-  RANKED = 'ranked',
-  TOURNAMENT = 'tournament',
-  PRACTICE = 'practice',
-  FREE_FOR_ALL = 'free_for_all'
-}
-
-export enum BattlePhase {
-  WAITING = 'waiting',
-  COUNTDOWN = 'countdown',
-  ACTIVE = 'active',
-  FINISHED = 'finished'
+  PRACTICE = 'practice'  // Only practice mode for now
 }
 
 export interface Arena {
   id: string;
   name: string;
-  description: string;
-  size: Vector3;
-  spawnPoints: Vector3[];
+  size: { width: number; height: number };
   obstacles: Obstacle[];
-  powerUpSpawns: Vector3[];
-  environment: {
-    lighting: string;
-    skybox: string;
-    gravity: number;
-  };
 }
 
 export interface Obstacle {
   id: string;
-  type: 'wall' | 'cover' | 'destructible' | 'platform';
   position: Vector3;
-  size: Vector3;
-  rotation: Quaternion;
-  health?: number; // for destructible obstacles
-  material: string;
+  size: { width: number; height: number };
 }
 
 export interface BattleState {
   id: string;
   mode: GameMode;
-  phase: BattlePhase;
   arena: Arena;
-  players: Player[];
   bots: BotState[];
-  projectiles: Projectile[];
-  powerUps: PowerUp[];
   timeRemaining: number;
-  scores: { [playerId: string]: number };
-  result?: 'victory' | 'defeat' | 'draw';
-  stats?: BattleStats;
-  events: BattleEvent[];
+  isActive: boolean;
+  winner?: string;
 }
 
-export interface BattleStats {
-  damageDealt: number;
-  damageTaken: number;
-  shotsFired: number;
-  shotsHit: number;
-  accuracy: number;
-  duration: number;
-  distanceTraveled: number;
-  killCount: number;
-  deathCount: number;
-}
-
-export interface BattleEvent {
-  id: string;
-  type: 'damage' | 'kill' | 'powerup' | 'ability_used';
-  timestamp: number;
-  playerId: string;
-  targetId?: string;
-  data: any;
-}
-
-// Player Types
 export interface Player {
   id: string;
   username: string;
   level: number;
-  rank: string;
-  stats: PlayerStats;
-  currentBot?: BotConfiguration;
-  isReady: boolean;
-  isConnected: boolean;
-}
-
-export interface PlayerStats {
-  gamesPlayed: number;
   wins: number;
-  losses: number;
-  kills: number;
-  deaths: number;
-  damageDealt: number;
-  damageTaken: number;
-  winRate: number;
-  averageKDA: number;
+  totalBattles: number;
+  unlockedSpecials: SpecialType[];
 }
 
-// Input Types
-export interface PlayerInput {
-  movement: {
-    forward: boolean;
-    backward: boolean;
-    left: boolean;
-    right: boolean;
-    jump: boolean;
-    boost: boolean;
-  };
-  combat: {
-    primaryFire: boolean;
-    secondaryFire: boolean;
-    specialAbility: boolean;
-  };
-  camera: {
-    pitch: number;
-    yaw: number;
-  };
-  timestamp: number;
-}
-
-// Network Types
-export interface GameMessage {
-  type: string;
-  data: any;
-  timestamp: number;
-  playerId?: string;
-}
-
-export interface MatchmakingRequest {
-  playerId: string;
-  gameMode: GameMode;
-  skillLevel: number;
-  botConfiguration: BotConfiguration;
-}
-
-export interface MatchFound {
-  battleId: string;
-  players: Player[];
-  arena: Arena;
-  estimatedStartTime: number;
-}
-
-// UI Types
+// UI State
 export interface UIState {
-  currentScreen: 'menu' | 'bot_builder' | 'matchmaking' | 'battle' | 'results';
+  currentScreen: 'menu' | 'bot_builder' | 'battle';
   isLoading: boolean;
   error?: string;
   notifications: Notification[];
@@ -309,28 +123,28 @@ export interface Notification {
   timestamp: number;
 }
 
-// Monetization Types
-export enum PremiumTier {
-  FREE = 'free',
-  BATTLE_PASS = 'battle_pass',
-  PREMIUM = 'premium'
+// Simplified Input (for AI and simple controls)
+export interface BotInput {
+  moveDirection: Vector3;
+  shouldFire: boolean;
+  shouldUseSpecial: boolean;
 }
 
-export interface PremiumFeature {
-  id: string;
-  name: string;
-  description: string;
-  requiredTier: PremiumTier;
-  price?: number;
-  category: 'chassis' | 'weapon' | 'cosmetic' | 'arena' | 'feature';
-}
+// Game Constants
+export const CHASSIS_STATS: Record<ChassisType, ChassisStats> = {
+  [ChassisType.SPEED]: { health: 3, speed: 8 },
+  [ChassisType.TANK]: { health: 8, speed: 3 },
+  [ChassisType.BALANCED]: { health: 5, speed: 5 }
+};
 
-export interface PlayerProgress {
-  level: number;
-  experience: number;
-  experienceToNext: number;
-  battlePassLevel: number;
-  battlePassExperience: number;
-  unlockedFeatures: string[];
-  ownedItems: string[];
-}
+export const WEAPON_STATS: Record<WeaponType, WeaponStats> = {
+  [WeaponType.BLASTER]: { damage: 1, fireRate: 3, range: 100 },
+  [WeaponType.CANNON]: { damage: 3, fireRate: 0.5, range: 120 },
+  [WeaponType.SHOTGUN]: { damage: 2, fireRate: 1.5, range: 60 }
+};
+
+export const SPECIAL_STATS: Record<SpecialType, SpecialStats> = {
+  [SpecialType.SHIELD]: { cooldown: 10, effect: 'block_next_attack' },
+  [SpecialType.SPEED_BOOST]: { cooldown: 15, duration: 3, effect: 'double_speed' },
+  [SpecialType.REPAIR]: { cooldown: 20, effect: 'restore_2_hp' }
+};
