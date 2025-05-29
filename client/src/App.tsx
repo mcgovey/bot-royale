@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
-import BotBuilder from './components/BotBuilder';
+import EnhancedBotBuilder from './components/EnhancedBotBuilder';
 import BattleArena from './components/BattleArena';
 import ProgressionDashboard from './components/ProgressionDashboard';
 import { ChassisType, WeaponType, SpecialType } from './types/game';
+import { EnhancedBotConfiguration } from './types/customization';
+import { createDefaultEnhancedBotConfig, convertLegacyBotConfig } from './utils/enhancedBotUtils';
 import { useProgressionStore } from './store/progressionStore';
 
 type GameMode = 'builder' | 'battle' | 'progression';
 
-interface BotConfig {
+// Legacy interface for backward compatibility with BattleArena
+interface LegacyBotConfig {
   chassis: ChassisType;
   weapon: WeaponType;
   special: SpecialType;
@@ -18,14 +21,11 @@ interface BotConfig {
 
 function App() {
   const [currentMode, setCurrentMode] = useState<GameMode>('builder');
-  const [botConfig, setBotConfig] = useState<BotConfig>({
-    chassis: ChassisType.BALANCED,
-    weapon: WeaponType.BLASTER,
-    special: SpecialType.SHIELD,
-    name: 'My Bot',
-    primaryColor: '#00f5ff',
-    secondaryColor: '#8b5cf6'
-  });
+
+  // Use the enhanced bot configuration
+  const [botConfig, setBotConfig] = useState<EnhancedBotConfiguration>(() =>
+    createDefaultEnhancedBotConfig('My Bot')
+  );
 
   const progression = useProgressionStore();
 
@@ -44,6 +44,16 @@ function App() {
   const handleCloseProgression = () => {
     setCurrentMode('builder');
   };
+
+  // Convert enhanced bot config to legacy format for BattleArena compatibility
+  const getLegacyBotConfig = (): LegacyBotConfig => ({
+    chassis: botConfig.chassis,
+    weapon: botConfig.weapon,
+    special: botConfig.special,
+    name: botConfig.name,
+    primaryColor: botConfig.appearance.primaryColor,
+    secondaryColor: botConfig.appearance.secondaryColor
+  });
 
   return (
     <div className="App h-screen w-full bg-dark-bg text-white overflow-hidden">
@@ -111,7 +121,7 @@ function App() {
       {/* Main Content */}
       <main className="relative z-10 h-full w-full">
         {currentMode === 'builder' && (
-          <BotBuilder
+          <EnhancedBotBuilder
             botConfig={botConfig}
             setBotConfig={setBotConfig}
             onStartBattle={handleStartBattle}
@@ -120,7 +130,7 @@ function App() {
 
         {currentMode === 'battle' && (
           <BattleArena
-            playerBot={botConfig}
+            playerBot={getLegacyBotConfig()}
             onBackToBuilder={handleBackToBuilder}
           />
         )}
