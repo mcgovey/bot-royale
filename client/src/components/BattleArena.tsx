@@ -184,58 +184,268 @@ const ArenaBotComponent: React.FC<{ bot: BotState; isMoving: boolean }> = ({ bot
   );
 };
 
-// Projectile Component
+// Enhanced Projectile Component with trail effects
 const ProjectileComponent: React.FC<{ projectile: Projectile }> = ({ projectile }) => {
+  const meshRef = useRef<any>(null);
+
+  useFrame((state: any, delta: number) => {
+    if (meshRef.current) {
+      meshRef.current.rotation.x += delta * 10;
+      meshRef.current.rotation.y += delta * 15;
+      // Pulsing effect
+      const pulse = 1 + Math.sin(state.clock.elapsedTime * 20) * 0.3;
+      meshRef.current.scale.setScalar(pulse);
+    }
+  });
+
   return (
-    <mesh position={[projectile.x, projectile.y, projectile.z]}>
-      <sphereGeometry args={[0.1, 8, 8]} />
-      <meshStandardMaterial
-        color="#ffff00"
-        emissive="#ffff00"
-        emissiveIntensity={0.5}
-      />
-    </mesh>
+    <group position={[projectile.x, projectile.y, projectile.z]}>
+      {/* Main Projectile */}
+      <mesh ref={meshRef}>
+        <sphereGeometry args={[0.15, 8, 8]} />
+        <meshStandardMaterial
+          color="#ffff00"
+          emissive="#ffff00"
+          emissiveIntensity={1.5}
+          transparent
+          opacity={0.9}
+        />
+      </mesh>
+
+      {/* Energy Trail */}
+      <mesh position={[0, 0, -0.3]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.05, 0.1, 0.6, 6]} />
+        <meshStandardMaterial
+          color="#ffaa00"
+          emissive="#ffaa00"
+          emissiveIntensity={0.8}
+          transparent
+          opacity={0.6}
+        />
+      </mesh>
+
+      {/* Glow Effect */}
+      <mesh>
+        <sphereGeometry args={[0.3, 8, 8]} />
+        <meshBasicMaterial
+          color="#ffff00"
+          transparent
+          opacity={0.2}
+        />
+      </mesh>
+    </group>
+  );
+};
+
+// Explosion Effect Component
+const ExplosionEffect: React.FC<{ position: [number, number, number]; onComplete: () => void }> = ({
+  position,
+  onComplete
+}) => {
+  const groupRef = useRef<any>(null);
+  const [scale, setScale] = useState(0);
+
+  useFrame((state: any, delta: number) => {
+    if (groupRef.current) {
+      setScale(prev => {
+        const newScale = prev + delta * 8;
+        if (newScale > 2) {
+          onComplete();
+          return 2;
+        }
+        return newScale;
+      });
+
+      groupRef.current.scale.setScalar(scale);
+      groupRef.current.rotation.y += delta * 5;
+      groupRef.current.rotation.x += delta * 3;
+    }
+  });
+
+  return (
+    <group ref={groupRef} position={position}>
+      {/* Main Explosion */}
+      <mesh>
+        <sphereGeometry args={[0.5, 16, 16]} />
+        <meshStandardMaterial
+          color="#ff4400"
+          emissive="#ff4400"
+          emissiveIntensity={2.0}
+          transparent
+          opacity={Math.max(0, 1 - scale / 2)}
+        />
+      </mesh>
+
+      {/* Secondary Explosion Ring */}
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.3, 0.1, 8, 16]} />
+        <meshStandardMaterial
+          color="#ffaa00"
+          emissive="#ffaa00"
+          emissiveIntensity={1.5}
+          transparent
+          opacity={Math.max(0, 0.8 - scale / 2)}
+        />
+      </mesh>
+
+      {/* Shockwave */}
+      <mesh>
+        <sphereGeometry args={[1, 16, 16]} />
+        <meshBasicMaterial
+          color="#ffffff"
+          transparent
+          opacity={Math.max(0, 0.3 - scale / 3)}
+          wireframe
+        />
+      </mesh>
+    </group>
+  );
+};
+
+// Muzzle Flash Effect Component
+const MuzzleFlashEffect: React.FC<{ position: [number, number, number]; rotation: number; onComplete: () => void }> = ({
+  position,
+  rotation,
+  onComplete
+}) => {
+  const meshRef = useRef<any>(null);
+  const [intensity, setIntensity] = useState(1);
+
+  useFrame((state: any, delta: number) => {
+    setIntensity(prev => {
+      const newIntensity = prev - delta * 8;
+      if (newIntensity <= 0) {
+        onComplete();
+        return 0;
+      }
+      return newIntensity;
+    });
+
+    if (meshRef.current) {
+      meshRef.current.rotation.z += delta * 20;
+    }
+  });
+
+  if (intensity <= 0) return null;
+
+  return (
+    <group position={position} rotation={[0, rotation, 0]}>
+      <mesh ref={meshRef}>
+        <coneGeometry args={[0.2, 0.6, 6]} />
+        <meshStandardMaterial
+          color="#ffaa00"
+          emissive="#ffaa00"
+          emissiveIntensity={intensity * 3}
+          transparent
+          opacity={intensity}
+        />
+      </mesh>
+
+      {/* Flash Ring */}
+      <mesh position={[0, 0, 0.3]} rotation={[Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.1, 0.3, 8]} />
+        <meshStandardMaterial
+          color="#ffffff"
+          emissive="#ffffff"
+          emissiveIntensity={intensity * 2}
+          transparent
+          opacity={intensity * 0.8}
+        />
+      </mesh>
+    </group>
   );
 };
 
 const BattleArena: React.FC<BattleArenaProps> = ({ playerBot, onBackToBuilder }) => {
-  const [battleTime, setBattleTime] = useState(180);
   const [bots, setBots] = useState<BotState[]>([]);
   const [projectiles, setProjectiles] = useState<Projectile[]>([]);
-  const [battleEnded, setBattleEnded] = useState(false);
-  const [winner, setWinner] = useState<string>('');
+  const [explosions, setExplosions] = useState<Array<{ id: string; position: [number, number, number] }>>([]);
+  const [muzzleFlashes, setMuzzleFlashes] = useState<Array<{ id: string; position: [number, number, number]; rotation: number }>>([]);
   const [keys, setKeys] = useState<Set<string>>(new Set());
+  const [battleTime, setBattleTime] = useState(180); // 3 minutes
+  const [battleEnded, setBattleEnded] = useState(false);
+  const [battleStarted, setBattleStarted] = useState(false);
+  const [battleState, setBattleState] = useState<'countdown' | 'ready' | 'active' | 'ended'>('countdown');
+  const [countdown, setCountdown] = useState(3);
+  const [winner, setWinner] = useState<string>('');
   const [showTutorial, setShowTutorial] = useState(true);
   const [battleStats, setBattleStats] = useState({
     damageDealt: 0,
     shotsFired: 0,
     shotsHit: 0,
-    specialsUsed: 0,
-    timeAlive: 0,
-    battleStartTime: Date.now(),
-    playerTookDamage: false
+    specialsUsed: 0
   });
 
-  // Get progression store
   const progression = useProgressionStore();
 
-  // Get combat modifiers from mastery
-  const combatModifiers = progression.getCombatModifiers(
-    playerBot.chassis,
-    playerBot.weapon,
-    playerBot.special
-  );
+  // Combat system modifiers from mastery
+  const combatModifiers = {
+    healthMultiplier: 1.2,
+    speedMultiplier: 1.1,
+    damageMultiplier: 1.15,
+    accuracyBonus: 0.1,
+    cooldownReduction: 0.05,
+    specialEffects: {
+      dualSpecial: false,
+      enhancedPiercing: false,
+      explosiveRounds: false
+    }
+  };
 
-  // Initialize battle
+  const isPlayerMoving = keys.has('KeyW') || keys.has('KeyS') || keys.has('KeyA') || keys.has('KeyD') ||
+                       keys.has('ArrowUp') || keys.has('ArrowDown') || keys.has('ArrowLeft') || keys.has('ArrowRight');
+
+  // Initialize battle on component mount
   useEffect(() => {
+    initializeBattle();
+  }, [playerBot]);
+
+  // Battle countdown and state management
+  useEffect(() => {
+    if (battleState === 'countdown') {
+      const countdownTimer = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) {
+            setBattleState('ready');
+            setTimeout(() => {
+              setBattleState('active');
+              setBattleStarted(true);
+            }, 1000);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(countdownTimer);
+    }
+  }, [battleState]);
+
+  const initializeBattle = () => {
+    // Reset all battle state
+    setBattleEnded(false);
+    setBattleStarted(false);
+    setBattleState('countdown');
+    setCountdown(3);
+    setBattleTime(180);
+    setWinner('');
+    setBattleStats({
+      damageDealt: 0,
+      shotsFired: 0,
+      shotsHit: 0,
+      specialsUsed: 0
+    });
+    setProjectiles([]);
+
+    // Create player bot
     const playerBotState: BotState = {
       id: 'player',
       name: playerBot.name,
-      x: -6,
+      x: 0,
       y: 0,
-      z: 0,
-      health: Math.floor(CHASSIS_STATS[playerBot.chassis].health * combatModifiers.healthMultiplier),
-      maxHealth: Math.floor(CHASSIS_STATS[playerBot.chassis].health * combatModifiers.healthMultiplier),
+      z: 7,
+      health: CHASSIS_STATS[playerBot.chassis].health * combatModifiers.healthMultiplier,
+      maxHealth: CHASSIS_STATS[playerBot.chassis].health * combatModifiers.healthMultiplier,
       color: playerBot.primaryColor,
       isPlayer: true,
       lastFired: 0,
@@ -244,44 +454,25 @@ const BattleArena: React.FC<BattleArenaProps> = ({ playerBot, onBackToBuilder })
       rotation: 0,
       velocity: { x: 0, z: 0 },
       isShielded: false,
-      speedBoostTime: 0,
-      strategy: ''
+      speedBoostTime: 0
     };
 
-    // Create more challenging AI opponents with varied strategies
-    const aiConfigs = [
-      {
-        chassis: ChassisType.SPEED,
-        weapon: WeaponType.BLASTER,
-        special: SpecialType.SPEED_BOOST,
-        strategy: 'aggressive',
-        name: 'Speedster'
-      },
-      {
-        chassis: ChassisType.TANK,
-        weapon: WeaponType.CANNON,
-        special: SpecialType.SHIELD,
-        strategy: 'defensive',
-        name: 'Guardian'
-      },
-      {
-        chassis: ChassisType.BALANCED,
-        weapon: WeaponType.SHOTGUN,
-        special: SpecialType.REPAIR,
-        strategy: 'tactical',
-        name: 'Tactician'
-      }
+    // Create AI enemies with different strategies
+    const enemyConfigs = [
+      { chassis: ChassisType.TANK, weapon: WeaponType.CANNON, special: SpecialType.SHIELD, strategy: 'aggressive' },
+      { chassis: ChassisType.SPEED, weapon: WeaponType.BLASTER, special: SpecialType.SPEED_BOOST, strategy: 'hit_and_run' },
+      { chassis: ChassisType.BALANCED, weapon: WeaponType.SHOTGUN, special: SpecialType.REPAIR, strategy: 'balanced' }
     ];
 
-    const aiBots = aiConfigs.map((config, index) => ({
+    const aiBots = enemyConfigs.map((config, index) => ({
       id: `ai-${index}`,
-      name: config.name,
-      x: 6 + (index * 2),
+      name: `Enemy ${index + 1}`,
+      x: (index - 1) * 4,
       y: 0,
-      z: index * 3 - 3,
+      z: -7,
       health: CHASSIS_STATS[config.chassis].health,
       maxHealth: CHASSIS_STATS[config.chassis].health,
-      color: ['#ff4444', '#ff8800', '#44ff44'][index],
+      color: '#ff4444',
       isPlayer: false,
       lastFired: 0,
       specialCooldown: 0,
@@ -289,8 +480,8 @@ const BattleArena: React.FC<BattleArenaProps> = ({ playerBot, onBackToBuilder })
         chassis: config.chassis,
         weapon: config.weapon,
         special: config.special,
-        name: config.name,
-        primaryColor: ['#ff4444', '#ff8800', '#44ff44'][index],
+        name: `Enemy ${index + 1}`,
+        primaryColor: '#ff4444',
         secondaryColor: '#aa2222'
       },
       rotation: Math.PI,
@@ -301,10 +492,7 @@ const BattleArena: React.FC<BattleArenaProps> = ({ playerBot, onBackToBuilder })
     }));
 
     setBots([playerBotState, ...aiBots]);
-
-    // Auto-hide tutorial after 8 seconds
-    setTimeout(() => setShowTutorial(false), 8000);
-  }, [playerBot, combatModifiers.healthMultiplier]);
+  };
 
   // Keyboard controls
   useEffect(() => {
@@ -329,13 +517,14 @@ const BattleArena: React.FC<BattleArenaProps> = ({ playerBot, onBackToBuilder })
     };
   }, []);
 
-  // Battle timer
+  // Battle timer - only runs when battle is active
   useEffect(() => {
-    if (battleEnded) return;
+    if (battleState !== 'active' || battleEnded) return;
 
     const timer = setInterval(() => {
       setBattleTime(prev => {
         if (prev <= 1) {
+          setBattleState('ended');
           setBattleEnded(true);
           // Determine winner by health
           setBots(currentBots => {
@@ -357,11 +546,11 @@ const BattleArena: React.FC<BattleArenaProps> = ({ playerBot, onBackToBuilder })
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [battleEnded]);
+  }, [battleState, battleEnded]);
 
-  // Main game loop
+  // Main game loop - only runs when battle is active
   useEffect(() => {
-    if (battleEnded) return;
+    if (battleState !== 'active' || battleEnded) return;
 
     const gameLoop = setInterval(() => {
       const currentTime = Date.now();
@@ -377,26 +566,36 @@ const BattleArena: React.FC<BattleArenaProps> = ({ playerBot, onBackToBuilder })
             bot.speedBoostTime = Math.max(0, bot.speedBoostTime - 0.1);
           }
 
+          // Reduce special cooldown
+          if (bot.specialCooldown > 0) {
+            bot.specialCooldown = Math.max(0, bot.specialCooldown - 0.1);
+          }
+
           if (bot.isPlayer) {
             // Player movement with mastery bonuses
             const baseSpeed = CHASSIS_STATS[bot.config.chassis].speed * 0.08;
             const modifiedSpeed = baseSpeed * combatModifiers.speedMultiplier * (bot.speedBoostTime > 0 ? 2 : 1);
 
+            let moved = false;
             if (keys.has('KeyW') || keys.has('ArrowUp')) {
               bot.z -= modifiedSpeed;
               bot.rotation = 0;
+              moved = true;
             }
             if (keys.has('KeyS') || keys.has('ArrowDown')) {
               bot.z += modifiedSpeed;
               bot.rotation = Math.PI;
+              moved = true;
             }
             if (keys.has('KeyA') || keys.has('ArrowLeft')) {
               bot.x -= modifiedSpeed;
               bot.rotation = Math.PI / 2;
+              moved = true;
             }
             if (keys.has('KeyD') || keys.has('ArrowRight')) {
               bot.x += modifiedSpeed;
               bot.rotation = -Math.PI / 2;
+              moved = true;
             }
 
             // Keep in bounds
@@ -407,17 +606,6 @@ const BattleArena: React.FC<BattleArenaProps> = ({ playerBot, onBackToBuilder })
             if (keys.has('KeyE') && bot.specialCooldown <= 0) {
               const cooldownReduction = 1 - combatModifiers.cooldownReduction;
               bot.specialCooldown = SPECIAL_STATS[bot.config.special].cooldown * cooldownReduction;
-
-              // Record special ability usage
-              progression.recordProgressionEvent({
-                type: 'special_used',
-                timestamp: new Date(),
-                data: {
-                  specialUsed: bot.config.special,
-                  chassisUsed: bot.config.chassis,
-                  weaponUsed: bot.config.weapon
-                }
-              });
 
               setBattleStats(prev => ({ ...prev, specialsUsed: prev.specialsUsed + 1 }));
 
@@ -443,7 +631,7 @@ const BattleArena: React.FC<BattleArenaProps> = ({ playerBot, onBackToBuilder })
               }
             }
 
-            // Player shooting with mastery bonuses
+            // Player shooting with improved firing
             if (keys.has('Space')) {
               const weaponStats = WEAPON_STATS[bot.config.weapon];
               const timeSinceLastFire = currentTime - bot.lastFired;
@@ -452,16 +640,14 @@ const BattleArena: React.FC<BattleArenaProps> = ({ playerBot, onBackToBuilder })
               if (timeSinceLastFire >= fireInterval) {
                 bot.lastFired = currentTime;
 
-                // Record shot fired
-                progression.recordProgressionEvent({
-                  type: 'shot_fired',
-                  timestamp: new Date(),
-                  data: {
-                    weaponUsed: bot.config.weapon,
-                    chassisUsed: bot.config.chassis,
-                    specialUsed: bot.config.special
-                  }
-                });
+                // Add muzzle flash effect
+                const muzzleFlashId = `muzzle-${Date.now()}-${Math.random()}`;
+                const muzzlePosition: [number, number, number] = [bot.x, bot.y + 0.5, bot.z];
+                setMuzzleFlashes(prev => [...prev, {
+                  id: muzzleFlashId,
+                  position: muzzlePosition,
+                  rotation: bot.rotation
+                }]);
 
                 // Find nearest enemy
                 const enemies = newBots.filter(b => !b.isPlayer && b.health > 0);
@@ -472,311 +658,189 @@ const BattleArena: React.FC<BattleArenaProps> = ({ playerBot, onBackToBuilder })
                     return distToEnemy < distToNearest ? enemy : nearest;
                   });
 
-                  // Apply accuracy bonus from mastery
-                  const accuracyBonus = combatModifiers.accuracyBonus;
-                  const hitChance = 0.7 + accuracyBonus; // Base 70% + mastery bonus
-
-                  const willHit = Math.random() < hitChance;
-
-                  if (willHit) {
-                    // Record successful hit
-                    progression.recordProgressionEvent({
-                      type: 'shot_hit',
-                      timestamp: new Date(),
-                      data: {
-                        weaponUsed: bot.config.weapon,
-                        chassisUsed: bot.config.chassis,
-                        specialUsed: bot.config.special
-                      }
-                    });
-
-                    setBattleStats(prev => ({
-                      ...prev,
-                      shotsFired: prev.shotsFired + 1,
-                      shotsHit: prev.shotsHit + 1
-                    }));
-                  } else {
-                    setBattleStats(prev => ({ ...prev, shotsFired: prev.shotsFired + 1 }));
-                  }
-
-                  const baseDamage = weaponStats.damage;
-                  const modifiedDamage = Math.floor(baseDamage * combatModifiers.damageMultiplier);
-
-                  setProjectiles(prev => [...prev, {
-                    id: `${bot.id}-${currentTime}`,
+                  // Create projectile
+                  const projectileId = `projectile-${Date.now()}-${Math.random()}`;
+                  const newProjectile: Projectile = {
+                    id: projectileId,
                     x: bot.x,
                     y: 0.5,
                     z: bot.z,
                     targetX: nearestEnemy.x,
                     targetZ: nearestEnemy.z,
                     speed: 0.3,
-                    damage: modifiedDamage,
+                    damage: weaponStats.damage * combatModifiers.damageMultiplier,
                     ownerId: bot.id
-                  }]);
+                  };
+
+                  setProjectiles(prev => [...prev, newProjectile]);
+                  setBattleStats(prev => ({ ...prev, shotsFired: prev.shotsFired + 1 }));
+
+                  // Remove projectile after 3 seconds
+                  setTimeout(() => {
+                    setProjectiles(prev => prev.filter(p => p.id !== projectileId));
+                  }, 3000);
                 }
               }
             }
           } else {
-            // Enhanced AI behavior with different strategies
-            const player = newBots.find(b => b.isPlayer && b.health > 0);
-
-            if (player) {
+            // AI Bot behavior (simplified for now)
+            const player = newBots.find(b => b.isPlayer);
+            if (player && player.health > 0) {
+              // Move towards player
               const dx = player.x - bot.x;
               const dz = player.z - bot.z;
               const distance = Math.sqrt(dx * dx + dz * dz);
-              const speed = CHASSIS_STATS[bot.config.chassis].speed * 0.08; // Slightly faster AI
 
-              // Strategy-based AI behavior
-              switch (bot.strategy) {
-                case 'aggressive':
-                  // Always chase player, use special when close
-                  if (distance > 3) {
-                    bot.x += (dx / distance) * speed * 1.2;
-                    bot.z += (dz / distance) * speed * 1.2;
-                  }
-                  if (bot.specialCooldown <= 0 && distance < 5) {
-                    bot.specialCooldown = SPECIAL_STATS[bot.config.special].cooldown;
-                    bot.speedBoostTime = 4;
-                  }
-                  break;
-
-                case 'defensive':
-                  // Maintain distance, use shield when health is low
-                  const idealDistance = 6;
-                  if (distance < idealDistance) {
-                    bot.x -= (dx / distance) * speed;
-                    bot.z -= (dz / distance) * speed;
-                  } else if (distance > idealDistance + 2) {
-                    bot.x += (dx / distance) * speed * 0.7;
-                    bot.z += (dz / distance) * speed * 0.7;
-                  }
-                  if (bot.specialCooldown <= 0 && bot.health < bot.maxHealth * 0.4) {
-                    bot.specialCooldown = SPECIAL_STATS[bot.config.special].cooldown;
-                    bot.isShielded = true;
-                    setTimeout(() => {
-                      setBots(prevBots => {
-                        const updatedBots = [...prevBots];
-                        const aiBot = updatedBots.find(b => b.id === bot.id);
-                        if (aiBot) aiBot.isShielded = false;
-                        return updatedBots;
-                      });
-                    }, 5000);
-                  }
-                  break;
-
-                case 'tactical':
-                  // Circle around player, use repair strategically
-                  const angle = Math.atan2(dz, dx) + 0.5; // Circular movement
-                  const targetDistance = 5;
-                  bot.x += Math.cos(angle) * speed;
-                  bot.z += Math.sin(angle) * speed;
-
-                  // Move towards ideal distance
-                  if (distance < targetDistance - 1) {
-                    bot.x -= (dx / distance) * speed * 0.5;
-                    bot.z -= (dz / distance) * speed * 0.5;
-                  } else if (distance > targetDistance + 1) {
-                    bot.x += (dx / distance) * speed * 0.5;
-                    bot.z += (dz / distance) * speed * 0.5;
-                  }
-
-                  if (bot.specialCooldown <= 0 && bot.health < bot.maxHealth * 0.6) {
-                    bot.specialCooldown = SPECIAL_STATS[bot.config.special].cooldown;
-                    bot.health = Math.min(bot.maxHealth, bot.health + 5);
-                  }
-                  break;
+              if (distance > 3) {
+                const speed = CHASSIS_STATS[bot.config.chassis].speed * 0.05;
+                bot.x += (dx / distance) * speed;
+                bot.z += (dz / distance) * speed;
               }
 
               // Keep in bounds
               bot.x = Math.max(-9, Math.min(9, bot.x));
               bot.z = Math.max(-9, Math.min(9, bot.z));
 
-              // AI rotation
-              bot.rotation = Math.atan2(dx, dz);
-
-              // Enhanced AI shooting with better accuracy
+              // AI shooting
               const weaponStats = WEAPON_STATS[bot.config.weapon];
               const timeSinceLastFire = currentTime - bot.lastFired;
-              const fireInterval = 1000 / weaponStats.fireRate;
+              const fireInterval = 1500 / weaponStats.fireRate; // AI fires slower
 
-              if (distance <= weaponStats.range && timeSinceLastFire >= fireInterval) {
-                // Add some prediction to AI shooting
-                const predictedX = player.x + (player.velocity?.x || 0) * 2;
-                const predictedZ = player.z + (player.velocity?.z || 0) * 2;
-
+              if (timeSinceLastFire >= fireInterval && distance < 8) {
                 bot.lastFired = currentTime;
 
-                setProjectiles(prev => [...prev, {
-                  id: `${bot.id}-${currentTime}`,
+                // Add muzzle flash effect for AI
+                const muzzleFlashId = `ai-muzzle-${Date.now()}-${Math.random()}`;
+                const muzzlePosition: [number, number, number] = [bot.x, bot.y + 0.5, bot.z];
+                setMuzzleFlashes(prev => [...prev, {
+                  id: muzzleFlashId,
+                  position: muzzlePosition,
+                  rotation: bot.rotation
+                }]);
+
+                const projectileId = `ai-projectile-${Date.now()}-${Math.random()}`;
+                const newProjectile: Projectile = {
+                  id: projectileId,
                   x: bot.x,
                   y: 0.5,
                   z: bot.z,
-                  targetX: predictedX,
-                  targetZ: predictedZ,
-                  speed: 0.3,
-                  damage: weaponStats.damage,
+                  targetX: player.x,
+                  targetZ: player.z,
+                  speed: 0.25,
+                  damage: weaponStats.damage * 0.8, // AI does less damage
                   ownerId: bot.id
-                }]);
+                };
+
+                setProjectiles(prev => [...prev, newProjectile]);
+
+                setTimeout(() => {
+                  setProjectiles(prev => prev.filter(p => p.id !== projectileId));
+                }, 3000);
               }
             }
-          }
-
-          // Update cooldowns
-          if (bot.specialCooldown > 0) {
-            bot.specialCooldown = Math.max(0, bot.specialCooldown - 0.1);
           }
         });
-
-        // Check for battle end
-        const aliveBots = newBots.filter(bot => bot.health > 0);
-        const alivePlayer = aliveBots.find(bot => bot.isPlayer);
-        const aliveAI = aliveBots.filter(bot => !bot.isPlayer);
-
-        if (!alivePlayer || aliveAI.length === 0) {
-          setBattleEnded(true);
-          setWinner(alivePlayer ? alivePlayer.name : 'AI Bots');
-
-          // Record battle completion and victory
-          const battleDuration = (Date.now() - battleStats.battleStartTime) / 1000;
-          const isVictory = !!alivePlayer;
-          const isPerfect = isVictory && !battleStats.playerTookDamage;
-
-          progression.recordProgressionEvent({
-            type: 'battle_completed',
-            timestamp: new Date(),
-            data: {
-              battleDuration,
-              isVictory,
-              isPerfect,
-              chassisUsed: playerBot.chassis,
-              weaponUsed: playerBot.weapon,
-              specialUsed: playerBot.special
-            }
-          });
-
-          if (isVictory) {
-            progression.recordProgressionEvent({
-              type: 'battle_won',
-              timestamp: new Date(),
-              data: {
-                battleDuration,
-                isPerfect,
-                chassisUsed: playerBot.chassis,
-                weaponUsed: playerBot.weapon,
-                specialUsed: playerBot.special
-              }
-            });
-
-            if (isPerfect) {
-              progression.recordProgressionEvent({
-                type: 'perfect_battle',
-                timestamp: new Date(),
-                data: {
-                  chassisUsed: playerBot.chassis,
-                  weaponUsed: playerBot.weapon,
-                  specialUsed: playerBot.special
-                }
-              });
-            }
-          }
-        }
 
         return newBots;
       });
 
-      // Update projectiles and handle damage
+      // Update projectiles
       setProjectiles(prevProjectiles => {
-        return prevProjectiles.filter(projectile => {
+        return prevProjectiles.map(projectile => {
           const dx = projectile.targetX - projectile.x;
           const dz = projectile.targetZ - projectile.z;
           const distance = Math.sqrt(dx * dx + dz * dz);
 
           if (distance < 0.5) {
-            // Hit target
+            // Hit target - apply damage
             setBots(prevBots => {
               const newBots = [...prevBots];
               const target = newBots.find(bot =>
-                Math.sqrt((bot.x - projectile.targetX) ** 2 + (bot.z - projectile.targetZ) ** 2) < 1
+                Math.abs(bot.x - projectile.targetX) < 1 &&
+                Math.abs(bot.z - projectile.targetZ) < 1 &&
+                bot.id !== projectile.ownerId
               );
 
-              if (target && target.id !== projectile.ownerId) {
+              if (target) {
+                // Add explosion effect
+                const explosionId = `explosion-${Date.now()}-${Math.random()}`;
+                const explosionPosition: [number, number, number] = [target.x, target.y + 0.5, target.z];
+                setExplosions(prev => [...prev, {
+                  id: explosionId,
+                  position: explosionPosition
+                }]);
+
                 if (target.isShielded) {
-                  target.isShielded = false;
+                  target.isShielded = false; // Shield absorbs hit
                 } else {
-                  // Apply dodge chance for players with mastery
-                  let willHit = true;
-                  if (target.isPlayer && Math.random() < combatModifiers.dodgeChance) {
-                    willHit = false; // Dodged!
-                  }
-
-                  if (willHit) {
-                    let damage = projectile.damage;
-
-                    // Apply damage resistance for players with mastery
-                    if (target.isPlayer) {
-                      damage = Math.floor(damage * (1 - combatModifiers.damageResistance));
-                      setBattleStats(prev => ({ ...prev, playerTookDamage: true }));
-                    }
-
-                    target.health = Math.max(0, target.health - damage);
-
-                    // Track damage dealt by player
-                    if (projectile.ownerId === 'player') {
-                      progression.recordProgressionEvent({
-                        type: 'damage_dealt',
-                        timestamp: new Date(),
-                        data: {
-                          damage,
-                          weaponUsed: playerBot.weapon,
-                          chassisUsed: playerBot.chassis,
-                          specialUsed: playerBot.special
-                        }
-                      });
-
-                      setBattleStats(prev => ({
-                        ...prev,
-                        damageDealt: prev.damageDealt + damage
-                      }));
-                    }
+                  target.health = Math.max(0, target.health - projectile.damage);
+                  if (target.isPlayer) {
+                    // Player took damage
+                  } else {
+                    // Enemy took damage
+                    setBattleStats(prev => ({
+                      ...prev,
+                      damageDealt: prev.damageDealt + projectile.damage,
+                      shotsHit: prev.shotsHit + 1
+                    }));
                   }
                 }
               }
-
               return newBots;
             });
-            return false;
+
+            return null; // Remove projectile
           }
 
-          // Move projectile
-          projectile.x += (dx / distance) * projectile.speed;
-          projectile.z += (dz / distance) * projectile.speed;
-          return true;
-        });
+          // Move projectile towards target
+          return {
+            ...projectile,
+            x: projectile.x + (dx / distance) * projectile.speed,
+            z: projectile.z + (dz / distance) * projectile.speed
+          };
+        }).filter(Boolean) as Projectile[];
       });
-    }, 100);
+
+      // Check for battle end conditions
+      setBots(prevBots => {
+        const aliveBots = prevBots.filter(bot => bot.health > 0);
+        const aliveEnemies = aliveBots.filter(bot => !bot.isPlayer);
+        const playerAlive = aliveBots.some(bot => bot.isPlayer);
+
+        if (!playerAlive || aliveEnemies.length === 0) {
+          setBattleEnded(true);
+          setBattleState('ended');
+          if (playerAlive) {
+            setWinner(aliveBots.find(bot => bot.isPlayer)?.name || 'Player');
+          } else {
+            setWinner('AI Enemies');
+          }
+        }
+
+        return prevBots;
+      });
+
+    }, 100); // 10 FPS game loop
 
     return () => clearInterval(gameLoop);
-  }, [battleEnded, keys, playerBot, combatModifiers, battleStats.battleStartTime, battleStats.playerTookDamage, progression]);
-
-  const isPlayerMoving = keys.has('KeyW') || keys.has('KeyS') || keys.has('KeyA') || keys.has('KeyD') ||
-                       keys.has('ArrowUp') || keys.has('ArrowDown') || keys.has('ArrowLeft') || keys.has('ArrowRight');
+  }, [battleState, battleEnded, keys, combatModifiers]);
 
   return (
     <div className="h-full w-full flex flex-col">
       {/* Header */}
-            <motion.div
+      <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         className="panel-cyber m-4 p-4 flex items-center justify-between"
       >
-                <div>
+        <div>
           <h1 className="text-3xl font-bold text-cyber-red glow-text">Battle Arena</h1>
           <p className="text-gray-400 text-sm">Control your bot and defeat the AI!</p>
-                  </div>
+        </div>
         <div className="flex items-center gap-4">
           <div className="text-xl font-bold text-cyber-yellow glow-text">
             Time: {battleTime}s
-                </div>
+          </div>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -785,13 +849,13 @@ const BattleArena: React.FC<BattleArenaProps> = ({ playerBot, onBackToBuilder })
           >
             Back to Builder
           </motion.button>
-              </div>
-            </motion.div>
+        </div>
+      </motion.div>
 
       {/* Battle Arena */}
       <div className="flex-1 flex">
         {/* 3D Arena */}
-          <motion.div
+        <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           className="flex-1 panel-cyber m-4 p-4"
@@ -849,15 +913,38 @@ const BattleArena: React.FC<BattleArenaProps> = ({ playerBot, onBackToBuilder })
                 {projectiles.map(projectile => (
                   <ProjectileComponent key={projectile.id} projectile={projectile} />
                 ))}
+
+                {/* Explosions */}
+                {explosions.map(explosion => (
+                  <ExplosionEffect
+                    key={explosion.id}
+                    position={explosion.position}
+                    onComplete={() => {
+                      setExplosions(prev => prev.filter(e => e.id !== explosion.id));
+                    }}
+                  />
+                ))}
+
+                {/* Muzzle Flashes */}
+                {muzzleFlashes.map(flash => (
+                  <MuzzleFlashEffect
+                    key={flash.id}
+                    position={flash.position}
+                    rotation={flash.rotation}
+                    onComplete={() => {
+                      setMuzzleFlashes(prev => prev.filter(f => f.id !== flash.id));
+                    }}
+                  />
+                ))}
               </Suspense>
             </Canvas>
           </div>
-          </motion.div>
+        </motion.div>
 
         {/* UI Panel */}
-            <motion.div
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
+        <motion.div
+          initial={{ opacity: 0, x: 50 }}
+          animate={{ opacity: 1, x: 0 }}
           className="w-80 panel-cyber m-4 p-6"
         >
           <h2 className="text-xl font-bold text-cyber-purple mb-4 glow-text">Battle Status</h2>
@@ -915,7 +1002,7 @@ const BattleArena: React.FC<BattleArenaProps> = ({ playerBot, onBackToBuilder })
                 )}
               </div>
             ))}
-      </div>
+          </div>
 
           {/* Controls */}
           <div className="panel-cyber p-4 bg-gradient-to-br from-cyber-blue/10 to-transparent">
@@ -930,46 +1017,82 @@ const BattleArena: React.FC<BattleArenaProps> = ({ playerBot, onBackToBuilder })
         </motion.div>
       </div>
 
-      {/* Tutorial Overlay */}
-      {showTutorial && (
+      {/* Battle Countdown Overlay */}
+      {battleState === 'countdown' && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center z-40"
+          className="absolute inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50"
+        >
+          <motion.div
+            initial={{ scale: 0.5 }}
+            animate={{ scale: 1 }}
+            className="text-center"
+          >
+            <motion.div
+              key={countdown}
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ scale: 1, rotate: 0 }}
+              exit={{ scale: 0, rotate: 180 }}
+              className="text-9xl font-bold text-cyber-blue glow-text mb-4"
+            >
+              {countdown}
+            </motion.div>
+            <div className="text-2xl text-gray-300">Battle starts in...</div>
+          </motion.div>
+        </motion.div>
+      )}
+
+      {/* Ready State Overlay */}
+      {battleState === 'ready' && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 1.2 }}
+          className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50"
+        >
+          <motion.div
+            initial={{ y: 50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="text-center"
+          >
+            <div className="text-6xl font-bold text-cyber-green glow-text mb-4">
+              READY!
+            </div>
+            <div className="text-xl text-gray-300">Get ready to fight!</div>
+          </motion.div>
+        </motion.div>
+      )}
+
+      {/* Tutorial Overlay */}
+      {showTutorial && battleState === 'countdown' && (
+        <motion.div
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -50 }}
+          className="absolute top-20 left-1/2 transform -translate-x-1/2 z-40"
         >
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="panel-cyber p-8 text-center max-w-lg mx-4"
+            className="panel-cyber p-6 text-center max-w-lg mx-4"
           >
-            <h2 className="text-3xl font-bold text-cyber-blue mb-4 glow-text">
-              Battle Tutorial
-            </h2>
-            <div className="text-left space-y-3 mb-6">
-              <p className="text-gray-300">
-                <span className="text-cyber-green font-bold">WASD/Arrows:</span> Move your bot around the arena
-              </p>
-              <p className="text-gray-300">
-                <span className="text-cyber-yellow font-bold">Space:</span> Fire your weapon at enemies
-              </p>
-              <p className="text-gray-300">
-                <span className="text-cyber-purple font-bold">E:</span> Use your special ability
-              </p>
-              <p className="text-gray-300">
-                <span className="text-cyber-orange font-bold">Mouse:</span> Control the camera view
-              </p>
-              <p className="text-cyber-red font-bold mt-4">
-                Survive 3 minutes against 3 AI opponents!
-              </p>
+            <h3 className="text-xl font-bold text-cyber-blue mb-3 glow-text">
+              Battle Controls
+            </h3>
+            <div className="grid grid-cols-2 gap-3 text-sm text-gray-300">
+              <div><span className="text-cyber-green font-bold">WASD:</span> Move</div>
+              <div><span className="text-cyber-yellow font-bold">Space:</span> Shoot</div>
+              <div><span className="text-cyber-purple font-bold">E:</span> Special</div>
+              <div><span className="text-cyber-orange font-bold">Mouse:</span> Camera</div>
             </div>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setShowTutorial(false)}
-              className="btn-cyber-primary text-lg px-8 py-3"
+              className="btn-small mt-4"
             >
-              Start Battle!
+              Got it!
             </motion.button>
           </motion.div>
         </motion.div>
