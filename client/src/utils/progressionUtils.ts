@@ -9,9 +9,10 @@ import {
   PlayerLevel,
   BattleStatistics,
   WeeklyChallenge,
-  PlayerProfile,
   BattlePassSeason,
-  BattlePassReward
+  BattlePassReward,
+  UnlockableComponent,
+  ComponentCollection
 } from '../types/progression';
 import { ChassisType, WeaponType, SpecialType } from '../types/game';
 
@@ -713,4 +714,478 @@ function initializeWeeklyChallenges(): WeeklyChallenge[] {
 // Generate random player ID
 function generatePlayerId(): string {
   return 'player_' + Math.random().toString(36).substr(2, 9);
+}
+
+// Initialize unlockable component collection
+export function initializeComponentCollection(): ComponentCollection {
+  return {
+    chassis: [
+      // Basic chassis (always unlocked)
+      {
+        id: 'speed_basic',
+        name: 'Speed Bot',
+        description: 'Fast movement, low health',
+        icon: '🏃',
+        rarity: 'common',
+        isUnlocked: true,
+        unlockRequirement: {
+          type: 'level',
+          description: 'Available from start',
+          requiredLevel: 1
+        },
+        category: 'chassis'
+      },
+      {
+        id: 'tank_basic',
+        name: 'Tank Bot',
+        description: 'Slow movement, high health',
+        icon: '🛡️',
+        rarity: 'common',
+        isUnlocked: true,
+        unlockRequirement: {
+          type: 'level',
+          description: 'Available from start',
+          requiredLevel: 1
+        },
+        category: 'chassis'
+      },
+      {
+        id: 'balanced_basic',
+        name: 'Balanced Bot',
+        description: 'Medium speed, medium health',
+        icon: '⚖️',
+        rarity: 'common',
+        isUnlocked: true,
+        unlockRequirement: {
+          type: 'level',
+          description: 'Available from start',
+          requiredLevel: 1
+        },
+        category: 'chassis'
+      },
+      // Advanced chassis (unlockable)
+      {
+        id: 'speed_advanced',
+        name: 'Velocity Demon',
+        description: 'Enhanced speed chassis with improved acceleration',
+        icon: '⚡',
+        rarity: 'rare',
+        isUnlocked: false,
+        unlockRequirement: {
+          type: 'mastery',
+          description: 'Reach Speed Mastery Level 10',
+          masteryPath: 'chassis.speed.velocityDemon',
+          masteryLevel: 10
+        },
+        category: 'chassis'
+      },
+      {
+        id: 'tank_fortress',
+        name: 'Fortress Titan',
+        description: 'Ultimate defense chassis with adaptive armor',
+        icon: '🏰',
+        rarity: 'epic',
+        isUnlocked: false,
+        unlockRequirement: {
+          type: 'achievement',
+          description: 'Unlock "Immovable Object" achievement',
+          achievementId: 'immovable_object'
+        },
+        category: 'chassis'
+      },
+      {
+        id: 'stealth_chassis',
+        name: 'Phantom Strike',
+        description: 'Experimental stealth chassis with cloaking ability',
+        icon: '👻',
+        rarity: 'legendary',
+        isUnlocked: false,
+        unlockRequirement: {
+          type: 'battle_pass',
+          description: 'Battle Pass Tier 25 (Premium)',
+          battlePassTier: 25,
+          battlePassType: 'premium'
+        },
+        category: 'chassis'
+      }
+    ],
+    weapons: [
+      // Basic weapons (always unlocked)
+      {
+        id: 'blaster_basic',
+        name: 'Blaster',
+        description: 'Fast shots, low damage',
+        icon: '🔫',
+        rarity: 'common',
+        isUnlocked: true,
+        unlockRequirement: {
+          type: 'level',
+          description: 'Available from start',
+          requiredLevel: 1
+        },
+        category: 'weapon'
+      },
+      {
+        id: 'cannon_basic',
+        name: 'Cannon',
+        description: 'Slow shots, high damage',
+        icon: '💥',
+        rarity: 'common',
+        isUnlocked: true,
+        unlockRequirement: {
+          type: 'level',
+          description: 'Available from start',
+          requiredLevel: 1
+        },
+        category: 'weapon'
+      },
+      {
+        id: 'shotgun_basic',
+        name: 'Shotgun',
+        description: 'Medium speed, medium damage',
+        icon: '🔥',
+        rarity: 'common',
+        isUnlocked: true,
+        unlockRequirement: {
+          type: 'level',
+          description: 'Available from start',
+          requiredLevel: 1
+        },
+        category: 'weapon'
+      },
+      // Advanced weapons (unlockable)
+      {
+        id: 'plasma_rifle',
+        name: 'Plasma Rifle',
+        description: 'Advanced energy weapon with piercing shots',
+        icon: '⚡',
+        rarity: 'rare',
+        isUnlocked: false,
+        unlockRequirement: {
+          type: 'level',
+          description: 'Reach Player Level 10',
+          requiredLevel: 10
+        },
+        category: 'weapon'
+      },
+      {
+        id: 'railgun',
+        name: 'Quantum Railgun',
+        description: 'Devastating long-range weapon',
+        icon: '⚔️',
+        rarity: 'epic',
+        isUnlocked: false,
+        unlockRequirement: {
+          type: 'achievement',
+          description: 'Unlock "Sharpshooter" achievement',
+          achievementId: 'sharpshooter'
+        },
+        category: 'weapon'
+      },
+      {
+        id: 'void_launcher',
+        name: 'Void Launcher',
+        description: 'Reality-bending weapon that ignores shields',
+        icon: '🌀',
+        rarity: 'legendary',
+        isUnlocked: false,
+        unlockRequirement: {
+          type: 'purchase',
+          description: 'Available in Premium Store',
+          price: {
+            currency: 'premium',
+            amount: 500
+          }
+        },
+        category: 'weapon'
+      }
+    ],
+    specials: [
+      // Basic specials (always unlocked)
+      {
+        id: 'shield_basic',
+        name: 'Shield',
+        description: 'Blocks one attack',
+        icon: '🛡️',
+        rarity: 'common',
+        isUnlocked: true,
+        unlockRequirement: {
+          type: 'level',
+          description: 'Available from start',
+          requiredLevel: 1
+        },
+        category: 'special'
+      },
+      {
+        id: 'speed_boost_basic',
+        name: 'Speed Boost',
+        description: 'Double speed for 3 seconds',
+        icon: '⚡',
+        rarity: 'common',
+        isUnlocked: true,
+        unlockRequirement: {
+          type: 'level',
+          description: 'Available from start',
+          requiredLevel: 1
+        },
+        category: 'special'
+      },
+      {
+        id: 'repair_basic',
+        name: 'Repair',
+        description: 'Restore 2 HP',
+        icon: '🔧',
+        rarity: 'common',
+        isUnlocked: true,
+        unlockRequirement: {
+          type: 'level',
+          description: 'Available from start',
+          requiredLevel: 1
+        },
+        category: 'special'
+      },
+      // Advanced specials (unlockable)
+      {
+        id: 'teleport',
+        name: 'Quantum Teleport',
+        description: 'Instantly teleport behind enemy',
+        icon: '🌀',
+        rarity: 'rare',
+        isUnlocked: false,
+        unlockRequirement: {
+          type: 'level',
+          description: 'Reach Player Level 15',
+          requiredLevel: 15
+        },
+        category: 'special'
+      },
+      {
+        id: 'time_slow',
+        name: 'Temporal Shift',
+        description: 'Slow time for 5 seconds',
+        icon: '⏳',
+        rarity: 'epic',
+        isUnlocked: false,
+        unlockRequirement: {
+          type: 'achievement',
+          description: 'Unlock "Time Master" achievement',
+          achievementId: 'time_master'
+        },
+        category: 'special'
+      },
+      {
+        id: 'multi_special',
+        name: 'Fusion Core',
+        description: 'Use two special abilities simultaneously',
+        icon: '💫',
+        rarity: 'legendary',
+        isUnlocked: false,
+        unlockRequirement: {
+          type: 'mastery',
+          description: 'Master all basic specials',
+          masteryPath: 'specials.all.uniqueCombinations',
+          masteryLevel: 15
+        },
+        category: 'special'
+      }
+    ],
+    cosmetics: {
+      patterns: [
+        {
+          id: 'pattern_flames',
+          name: 'Flame Pattern',
+          description: 'Fiery design for aggressive bots',
+          icon: '🔥',
+          rarity: 'rare',
+          isUnlocked: false,
+          unlockRequirement: {
+            type: 'achievement',
+            description: 'Deal 500 damage with fire weapons',
+            achievementId: 'flame_warrior'
+          },
+          category: 'cosmetic'
+        },
+        {
+          id: 'pattern_lightning',
+          name: 'Lightning Pattern',
+          description: 'Electric design for speed bots',
+          icon: '⚡',
+          rarity: 'epic',
+          isUnlocked: false,
+          unlockRequirement: {
+            type: 'battle_pass',
+            description: 'Battle Pass Tier 15',
+            battlePassTier: 15,
+            battlePassType: 'free'
+          },
+          category: 'cosmetic'
+        }
+      ],
+      colors: [
+        {
+          id: 'color_gold',
+          name: 'Golden Finish',
+          description: 'Prestigious gold coloring',
+          icon: '🏆',
+          rarity: 'legendary',
+          isUnlocked: false,
+          unlockRequirement: {
+            type: 'achievement',
+            description: 'Win 100 battles',
+            achievementId: 'centurion'
+          },
+          category: 'cosmetic'
+        }
+      ],
+      decals: [
+        {
+          id: 'decal_skull',
+          name: 'Skull Decal',
+          description: 'Intimidating skull marking',
+          icon: '💀',
+          rarity: 'rare',
+          isUnlocked: false,
+          unlockRequirement: {
+            type: 'achievement',
+            description: 'Defeat 50 enemies',
+            achievementId: 'grim_reaper'
+          },
+          category: 'cosmetic'
+        }
+      ],
+      titles: [
+        {
+          id: 'title_champion',
+          name: 'Champion',
+          description: 'Title for tournament winners',
+          icon: '👑',
+          rarity: 'legendary',
+          isUnlocked: false,
+          unlockRequirement: {
+            type: 'achievement',
+            description: 'Win a tournament',
+            achievementId: 'tournament_champion'
+          },
+          category: 'cosmetic'
+        }
+      ],
+      badges: [
+        {
+          id: 'badge_veteran',
+          name: 'Veteran Badge',
+          description: 'For experienced pilots',
+          icon: '🎖️',
+          rarity: 'epic',
+          isUnlocked: false,
+          unlockRequirement: {
+            type: 'level',
+            description: 'Reach Player Level 25',
+            requiredLevel: 25
+          },
+          category: 'cosmetic'
+        }
+      ]
+    }
+  };
+}
+
+// Check if a component is unlocked
+export function checkComponentUnlock(
+  component: UnlockableComponent,
+  progressionState: ProgressionState
+): { isUnlocked: boolean; progress?: { current: number; required: number } } {
+  const { unlockRequirement } = component;
+
+  switch (unlockRequirement.type) {
+    case 'level':
+      const isLevelUnlocked = progressionState.profile.level.level >= (unlockRequirement.requiredLevel || 1);
+      return {
+        isUnlocked: isLevelUnlocked,
+        progress: {
+          current: progressionState.profile.level.level,
+          required: unlockRequirement.requiredLevel || 1
+        }
+      };
+
+    case 'achievement':
+      const achievement = progressionState.achievements.find(a => a.id === unlockRequirement.achievementId);
+      return {
+        isUnlocked: achievement?.isUnlocked || false,
+        progress: achievement ? {
+          current: achievement.progress,
+          required: achievement.maxProgress
+        } : undefined
+      };
+
+    case 'mastery':
+      // Simplified mastery check - would need more complex logic for real implementation
+      return {
+        isUnlocked: false,
+        progress: { current: 0, required: unlockRequirement.masteryLevel || 10 }
+      };
+
+    case 'battle_pass':
+      const battlePass = progressionState.battlePass;
+      const tierUnlocked = battlePass.currentSeason.currentTier >= (unlockRequirement.battlePassTier || 1);
+      const typeMatches = unlockRequirement.battlePassType === 'free' || battlePass.isPremium;
+      return {
+        isUnlocked: tierUnlocked && typeMatches,
+        progress: {
+          current: battlePass.currentSeason.currentTier,
+          required: unlockRequirement.battlePassTier || 1
+        }
+      };
+
+    case 'purchase':
+      // For now, assume not purchased - would need a purchase system
+      return {
+        isUnlocked: false,
+        progress: { current: 0, required: 1 }
+      };
+
+    case 'challenge':
+      const challenge = progressionState.weeklyChallenges.find(c => c.id === unlockRequirement.challengeId);
+      return {
+        isUnlocked: challenge?.isCompleted || false,
+        progress: challenge ? {
+          current: challenge.progress,
+          required: challenge.maxProgress
+        } : undefined
+      };
+
+    default:
+      return { isUnlocked: false };
+  }
+}
+
+// Get all components with their current unlock status
+export function getComponentsWithUnlockStatus(
+  componentCollection: ComponentCollection,
+  progressionState: ProgressionState
+): ComponentCollection {
+  const updateComponentsArray = (components: UnlockableComponent[]) =>
+    components.map(component => {
+      const unlockStatus = checkComponentUnlock(component, progressionState);
+      return {
+        ...component,
+        isUnlocked: unlockStatus.isUnlocked,
+        unlockRequirement: {
+          ...component.unlockRequirement,
+          progress: unlockStatus.progress
+        }
+      };
+    });
+
+  return {
+    chassis: updateComponentsArray(componentCollection.chassis),
+    weapons: updateComponentsArray(componentCollection.weapons),
+    specials: updateComponentsArray(componentCollection.specials),
+    cosmetics: {
+      patterns: updateComponentsArray(componentCollection.cosmetics.patterns),
+      colors: updateComponentsArray(componentCollection.cosmetics.colors),
+      decals: updateComponentsArray(componentCollection.cosmetics.decals),
+      titles: updateComponentsArray(componentCollection.cosmetics.titles),
+      badges: updateComponentsArray(componentCollection.cosmetics.badges)
+    }
+  };
 }

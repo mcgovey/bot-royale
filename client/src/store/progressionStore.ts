@@ -6,10 +6,7 @@ import {
   XPReward,
   Achievement,
   CombatModifiers,
-  MasteryProgress,
-  PlayerLevel,
-  BattleStatistics,
-  WeeklyChallenge
+  BattleStatistics
 } from '../types/progression';
 import { ChassisType, WeaponType, SpecialType } from '../types/game';
 import {

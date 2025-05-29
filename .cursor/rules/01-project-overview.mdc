@@ -1,0 +1,42 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+# BattleBot Arena - Project Overview
+
+## 🎯 Project Purpose
+Bot Royale is a **3D real-time combat game** where players design custom robots and battle in dynamic arenas. Built with React, Three.js, and TypeScript, it features beautiful 3D graphics, cyber-themed UI, and strategic gameplay.
+
+## 🏗️ Architecture Overview
+This is a **monorepo** with clear separation of concerns:
+
+### Frontend ([client/](mdc:client))
+- **React 19** + **TypeScript** application
+- **Three.js** and **React Three Fiber** for 3D graphics
+- **Tailwind CSS** + custom cyber-themed styling
+- Entry point: [client/src/index.tsx](mdc:client/src/index.tsx)
+- Main app: [client/src/App.tsx](mdc:client/src/App.tsx)
+
+### Backend ([server/](mdc:server))
+- **Node.js** + **Express** + **TypeScript**
+- **Socket.io** for real-time multiplayer
+- Entry point: [server/src/index.ts](mdc:server/src/index.ts)
+
+### Shared ([shared/](mdc:shared))
+- Common **types** and **constants** used by both client and server
+- Game logic and data structures
+
+### Testing ([tests/](mdc:tests))
+- Comprehensive **E2E testing** with Puppeteer
+- **Performance**, **usability**, and **functionality** test suites
+- Test runner: [tests/test-runner.js](mdc:tests/test-runner.js)
+
+## 🎮 Game Modes
+1. **Bot Builder Mode**: 3D interactive robot customization
+2. **Battle Arena Mode**: 3D combat with player controls and AI opponents
+
+## 🚀 Quick Commands
+- `npm run dev` - Start both client and server in development
+- `npm run test:e2e` - Run end-to-end tests
+- `npm run build` - Build for production

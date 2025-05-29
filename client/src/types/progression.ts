@@ -247,3 +247,64 @@ export interface ProgressionEvent {
     isPerfect?: boolean;
   };
 }
+
+export interface UnlockableComponent {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  rarity: 'common' | 'rare' | 'epic' | 'legendary';
+  isUnlocked: boolean;
+  unlockRequirement: UnlockRequirement;
+  previewImage?: string;
+  category: 'chassis' | 'weapon' | 'special' | 'cosmetic';
+}
+
+export interface UnlockRequirement {
+  type: 'achievement' | 'level' | 'battle_pass' | 'mastery' | 'purchase' | 'challenge';
+  description: string;
+  progress?: {
+    current: number;
+    required: number;
+  };
+  // For achievement-based unlocks
+  achievementId?: string;
+  // For level-based unlocks
+  requiredLevel?: number;
+  // For mastery-based unlocks
+  masteryPath?: string;
+  masteryLevel?: number;
+  // For battle pass unlocks
+  battlePassTier?: number;
+  battlePassType?: 'free' | 'premium';
+  // For purchase-based unlocks
+  price?: {
+    currency: 'credits' | 'premium';
+    amount: number;
+  };
+  // For challenge-based unlocks
+  challengeId?: string;
+}
+
+export interface ComponentCollection {
+  chassis: UnlockableComponent[];
+  weapons: UnlockableComponent[];
+  specials: UnlockableComponent[];
+  cosmetics: {
+    patterns: UnlockableComponent[];
+    colors: UnlockableComponent[];
+    decals: UnlockableComponent[];
+    titles: UnlockableComponent[];
+    badges: UnlockableComponent[];
+  };
+}
+
+export interface ComponentUnlockState {
+  unlockedComponents: string[]; // Array of component IDs
+  recentUnlocks: Array<{
+    componentId: string;
+    unlockedAt: Date;
+    unlockSource: string;
+  }>;
+  previewMode: boolean; // Whether user is previewing locked content
+}
