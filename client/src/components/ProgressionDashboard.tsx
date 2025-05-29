@@ -51,7 +51,7 @@ const ProgressionDashboard: React.FC<ProgressionDashboardProps> = ({ onClose }) 
 
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white text-3xl font-bold"
+            className="btn-close"
           >
             ×
           </button>
@@ -86,10 +86,8 @@ const ProgressionDashboard: React.FC<ProgressionDashboardProps> = ({ onClose }) 
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
-                activeTab === tab.id
-                  ? 'bg-cyber-blue text-dark-bg'
-                  : 'text-gray-400 hover:text-white hover:bg-dark-surface'
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium btn-tab ${
+                activeTab === tab.id ? 'active' : ''
               }`}
             >
               <span className="mr-2">{tab.icon}</span>
@@ -207,10 +205,8 @@ const AchievementsTab: React.FC = () => {
           <button
             key={category.id}
             onClick={() => setFilter(category.id as any)}
-            className={`px-4 py-2 rounded-lg whitespace-nowrap transition-all duration-200 ${
-              filter === category.id
-                ? 'bg-cyber-blue text-dark-bg'
-                : 'bg-dark-bg text-gray-400 hover:text-white hover:bg-dark-surface'
+            className={`px-4 py-2 rounded-lg whitespace-nowrap btn-tab ${
+              filter === category.id ? 'active' : ''
             }`}
           >
             <span className="mr-2">{category.icon}</span>
@@ -318,10 +314,8 @@ const MasteryTab: React.FC = () => {
           <button
             key={type.id}
             onClick={() => setSelectedType(type.id as any)}
-            className={`px-6 py-3 rounded-lg transition-all duration-200 ${
-              selectedType === type.id
-                ? 'bg-cyber-blue text-dark-bg'
-                : 'bg-dark-bg text-gray-400 hover:text-white hover:bg-dark-surface'
+            className={`px-6 py-3 rounded-lg btn-tab ${
+              selectedType === type.id ? 'active' : ''
             }`}
           >
             <span className="mr-2">{type.icon}</span>

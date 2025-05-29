@@ -263,115 +263,326 @@ const BotBuilder: React.FC<BotBuilderProps> = ({ botConfig, setBotConfig, onStar
 
           {/* Chassis Selection */}
           <div className="mb-8">
-            <h3 className="text-lg font-bold text-cyber-blue mb-3 glow-text">Choose Chassis</h3>
+            <h3 className="text-lg font-bold text-cyber-blue mb-3 glow-text flex items-center">
+              <span className="mr-2">🔧</span>
+              Choose Chassis
+            </h3>
             <div className="space-y-3">
               {chassisOptions.map((option) => (
-                <motion.button
+                <motion.div
                   key={option.type}
-                  whileHover={{ scale: 1.02, x: 5 }}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  whileHover={{ scale: 1.02, x: 8 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => updateChassis(option.type)}
-                  className={`w-full p-4 rounded-lg border-2 transition-all duration-300 ${
+                  className={`relative overflow-hidden rounded-xl border-2 transition-all duration-300 cursor-pointer ${
                     botConfig.chassis === option.type
-                      ? `border-${option.color} bg-${option.color}/20 shadow-lg shadow-${option.color}/30`
-                      : 'border-gray-500 hover:border-gray-300 bg-dark-surface/80 hover:bg-dark-surface'
+                      ? 'border-cyber-blue bg-gradient-to-r from-cyber-blue/20 to-cyber-purple/10 shadow-lg shadow-cyber-blue/30'
+                      : 'border-gray-600 bg-gradient-to-r from-dark-surface/60 to-dark-panel/40 hover:border-gray-400 hover:shadow-md'
                   }`}
+                  onClick={() => updateChassis(option.type)}
                 >
-                  <div className="flex items-center space-x-3">
-                    <span className="text-3xl">{option.icon}</span>
-                    <div className="flex-1 text-left">
-                      <p className={`font-bold ${botConfig.chassis === option.type ? 'text-white' : 'text-gray-200'}`}>
-                        {option.name}
-                      </p>
-                      <p className={`text-xs ${botConfig.chassis === option.type ? 'text-gray-300' : 'text-gray-400'}`}>
+                  {/* Background Glow Effect */}
+                  {botConfig.chassis === option.type && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="absolute inset-0 bg-gradient-to-r from-cyber-blue/10 to-cyber-purple/5 pointer-events-none"
+                    />
+                  )}
+
+                  {/* Animated Border Effect */}
+                  {botConfig.chassis === option.type && (
+                    <motion.div
+                      initial={{ scale: 0.9, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="absolute inset-0 rounded-xl border border-cyber-blue/50 pointer-events-none"
+                      style={{
+                        boxShadow: '0 0 20px rgba(0, 245, 255, 0.3), inset 0 0 20px rgba(0, 245, 255, 0.1)'
+                      }}
+                    />
+                  )}
+
+                  <div className="relative p-4 flex items-center space-x-4">
+                    {/* Icon with Glow */}
+                    <div className={`text-4xl filter drop-shadow-lg ${
+                      botConfig.chassis === option.type ? 'text-shadow-glow animate-pulse-glow' : ''
+                    }`}>
+                      {option.icon}
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <h4 className={`font-bold text-lg ${
+                          botConfig.chassis === option.type ? 'text-white text-glow' : 'text-gray-200'
+                        }`}>
+                          {option.name}
+                        </h4>
+                        {botConfig.chassis === option.type && (
+                          <motion.div
+                            initial={{ scale: 0, rotate: -180 }}
+                            animate={{ scale: 1, rotate: 0 }}
+                            className="text-cyber-green text-2xl filter drop-shadow-lg"
+                          >
+                            ✓
+                          </motion.div>
+                        )}
+                      </div>
+
+                      <p className={`text-sm mb-2 ${
+                        botConfig.chassis === option.type ? 'text-gray-300' : 'text-gray-400'
+                      }`}>
                         {option.description}
                       </p>
-                      <p className={`text-xs mt-1 font-medium ${botConfig.chassis === option.type ? 'text-gray-200' : 'text-gray-300'}`}>
-                        {option.stats.health} HP • Speed {option.stats.speed}
-                      </p>
+
+                      {/* Stats Bar */}
+                      <div className="flex space-x-3 text-xs">
+                        <div className={`flex items-center space-x-1 ${
+                          botConfig.chassis === option.type ? 'text-cyber-green' : 'text-gray-400'
+                        }`}>
+                          <span>❤️</span>
+                          <span className="font-mono">{option.stats.health}</span>
+                        </div>
+                        <div className={`flex items-center space-x-1 ${
+                          botConfig.chassis === option.type ? 'text-cyber-blue' : 'text-gray-400'
+                        }`}>
+                          <span>⚡</span>
+                          <span className="font-mono">{option.stats.speed}</span>
+                        </div>
+                      </div>
                     </div>
-                    {botConfig.chassis === option.type && (
-                      <div className="text-cyber-green text-xl">✓</div>
-                    )}
                   </div>
-                </motion.button>
+
+                  {/* Selection Indicator */}
+                  {botConfig.chassis === option.type && (
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: '100%' }}
+                      className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-cyber-blue to-cyber-purple"
+                    />
+                  )}
+                </motion.div>
               ))}
             </div>
           </div>
 
           {/* Weapon Selection */}
           <div className="mb-8">
-            <h3 className="text-lg font-bold text-cyber-green mb-3 glow-text">Choose Weapon</h3>
+            <h3 className="text-lg font-bold text-cyber-green mb-3 glow-text flex items-center">
+              <span className="mr-2">⚔️</span>
+              Choose Weapon
+            </h3>
             <div className="space-y-3">
               {weaponOptions.map((option) => (
-                <motion.button
+                <motion.div
                   key={option.type}
-                  whileHover={{ scale: 1.02, x: 5 }}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  whileHover={{ scale: 1.02, x: 8 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => updateWeapon(option.type)}
-                  className={`w-full p-4 rounded-lg border-2 transition-all duration-300 ${
+                  className={`relative overflow-hidden rounded-xl border-2 transition-all duration-300 cursor-pointer ${
                     botConfig.weapon === option.type
-                      ? `border-${option.color} bg-${option.color}/20 shadow-lg shadow-${option.color}/30`
-                      : 'border-gray-500 hover:border-gray-300 bg-dark-surface/80 hover:bg-dark-surface'
+                      ? 'border-cyber-green bg-gradient-to-r from-cyber-green/20 to-cyber-blue/10 shadow-lg shadow-cyber-green/30'
+                      : 'border-gray-600 bg-gradient-to-r from-dark-surface/60 to-dark-panel/40 hover:border-gray-400 hover:shadow-md'
                   }`}
+                  onClick={() => updateWeapon(option.type)}
                 >
-                  <div className="flex items-center space-x-3">
-                    <span className="text-3xl">{option.icon}</span>
-                    <div className="flex-1 text-left">
-                      <p className={`font-bold ${botConfig.weapon === option.type ? 'text-white' : 'text-gray-200'}`}>
-                        {option.name}
-                      </p>
-                      <p className={`text-xs ${botConfig.weapon === option.type ? 'text-gray-300' : 'text-gray-400'}`}>
+                  {/* Background Glow Effect */}
+                  {botConfig.weapon === option.type && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="absolute inset-0 bg-gradient-to-r from-cyber-green/10 to-cyber-blue/5 pointer-events-none"
+                    />
+                  )}
+
+                  {/* Animated Border Effect */}
+                  {botConfig.weapon === option.type && (
+                    <motion.div
+                      initial={{ scale: 0.9, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="absolute inset-0 rounded-xl border border-cyber-green/50 pointer-events-none"
+                      style={{
+                        boxShadow: '0 0 20px rgba(16, 185, 129, 0.3), inset 0 0 20px rgba(16, 185, 129, 0.1)'
+                      }}
+                    />
+                  )}
+
+                  <div className="relative p-4 flex items-center space-x-4">
+                    {/* Icon with Glow */}
+                    <div className={`text-4xl filter drop-shadow-lg ${
+                      botConfig.weapon === option.type ? 'text-shadow-glow animate-pulse-glow' : ''
+                    }`}>
+                      {option.icon}
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <h4 className={`font-bold text-lg ${
+                          botConfig.weapon === option.type ? 'text-white text-glow' : 'text-gray-200'
+                        }`}>
+                          {option.name}
+                        </h4>
+                        {botConfig.weapon === option.type && (
+                          <motion.div
+                            initial={{ scale: 0, rotate: -180 }}
+                            animate={{ scale: 1, rotate: 0 }}
+                            className="text-cyber-green text-2xl filter drop-shadow-lg"
+                          >
+                            ✓
+                          </motion.div>
+                        )}
+                      </div>
+
+                      <p className={`text-sm mb-2 ${
+                        botConfig.weapon === option.type ? 'text-gray-300' : 'text-gray-400'
+                      }`}>
                         {option.description}
                       </p>
-                      <p className={`text-xs mt-1 font-medium ${botConfig.weapon === option.type ? 'text-gray-200' : 'text-gray-300'}`}>
-                        {option.stats.damage} DMG • {option.stats.fireRate}/s • {option.stats.range}m
-                      </p>
+
+                      {/* Stats Bar */}
+                      <div className="flex space-x-3 text-xs">
+                        <div className={`flex items-center space-x-1 ${
+                          botConfig.weapon === option.type ? 'text-cyber-red' : 'text-gray-400'
+                        }`}>
+                          <span>💥</span>
+                          <span className="font-mono">{option.stats.damage}</span>
+                        </div>
+                        <div className={`flex items-center space-x-1 ${
+                          botConfig.weapon === option.type ? 'text-cyber-blue' : 'text-gray-400'
+                        }`}>
+                          <span>🔫</span>
+                          <span className="font-mono">{option.stats.fireRate}/s</span>
+                        </div>
+                        <div className={`flex items-center space-x-1 ${
+                          botConfig.weapon === option.type ? 'text-cyber-purple' : 'text-gray-400'
+                        }`}>
+                          <span>🎯</span>
+                          <span className="font-mono">{option.stats.range}m</span>
+                        </div>
+                      </div>
                     </div>
-                    {botConfig.weapon === option.type && (
-                      <div className="text-cyber-green text-xl">✓</div>
-                    )}
                   </div>
-                </motion.button>
+
+                  {/* Selection Indicator */}
+                  {botConfig.weapon === option.type && (
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: '100%' }}
+                      className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-cyber-green to-cyber-blue"
+                    />
+                  )}
+                </motion.div>
               ))}
             </div>
           </div>
 
           {/* Special Selection */}
           <div>
-            <h3 className="text-lg font-bold text-cyber-orange mb-3 glow-text">Choose Special</h3>
+            <h3 className="text-lg font-bold text-cyber-orange mb-3 glow-text flex items-center">
+              <span className="mr-2">✨</span>
+              Choose Special
+            </h3>
             <div className="space-y-3">
               {specialOptions.map((option) => (
-                <motion.button
+                <motion.div
                   key={option.type}
-                  whileHover={{ scale: 1.02, x: 5 }}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  whileHover={{ scale: 1.02, x: 8 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => updateSpecial(option.type)}
-                  className={`w-full p-4 rounded-lg border-2 transition-all duration-300 ${
+                  className={`relative overflow-hidden rounded-xl border-2 transition-all duration-300 cursor-pointer ${
                     botConfig.special === option.type
-                      ? `border-${option.color} bg-${option.color}/20 shadow-lg shadow-${option.color}/30`
-                      : 'border-gray-500 hover:border-gray-300 bg-dark-surface/80 hover:bg-dark-surface'
+                      ? 'border-cyber-orange bg-gradient-to-r from-cyber-orange/20 to-cyber-purple/10 shadow-lg shadow-cyber-orange/30'
+                      : 'border-gray-600 bg-gradient-to-r from-dark-surface/60 to-dark-panel/40 hover:border-gray-400 hover:shadow-md'
                   }`}
+                  onClick={() => updateSpecial(option.type)}
                 >
-                  <div className="flex items-center space-x-3">
-                    <span className="text-3xl">{option.icon}</span>
-                    <div className="flex-1 text-left">
-                      <p className={`font-bold ${botConfig.special === option.type ? 'text-white' : 'text-gray-200'}`}>
-                        {option.name}
-                      </p>
-                      <p className={`text-xs ${botConfig.special === option.type ? 'text-gray-300' : 'text-gray-400'}`}>
+                  {/* Background Glow Effect */}
+                  {botConfig.special === option.type && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="absolute inset-0 bg-gradient-to-r from-cyber-orange/10 to-cyber-purple/5 pointer-events-none"
+                    />
+                  )}
+
+                  {/* Animated Border Effect */}
+                  {botConfig.special === option.type && (
+                    <motion.div
+                      initial={{ scale: 0.9, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="absolute inset-0 rounded-xl border border-cyber-orange/50 pointer-events-none"
+                      style={{
+                        boxShadow: '0 0 20px rgba(245, 158, 11, 0.3), inset 0 0 20px rgba(245, 158, 11, 0.1)'
+                      }}
+                    />
+                  )}
+
+                  <div className="relative p-4 flex items-center space-x-4">
+                    {/* Icon with Glow */}
+                    <div className={`text-4xl filter drop-shadow-lg ${
+                      botConfig.special === option.type ? 'text-shadow-glow animate-pulse-glow' : ''
+                    }`}>
+                      {option.icon}
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <h4 className={`font-bold text-lg ${
+                          botConfig.special === option.type ? 'text-white text-glow' : 'text-gray-200'
+                        }`}>
+                          {option.name}
+                        </h4>
+                        {botConfig.special === option.type && (
+                          <motion.div
+                            initial={{ scale: 0, rotate: -180 }}
+                            animate={{ scale: 1, rotate: 0 }}
+                            className="text-cyber-green text-2xl filter drop-shadow-lg"
+                          >
+                            ✓
+                          </motion.div>
+                        )}
+                      </div>
+
+                      <p className={`text-sm mb-2 ${
+                        botConfig.special === option.type ? 'text-gray-300' : 'text-gray-400'
+                      }`}>
                         {option.description}
                       </p>
-                      <p className={`text-xs mt-1 font-medium ${botConfig.special === option.type ? 'text-gray-200' : 'text-gray-300'}`}>
-                        {option.stats.cooldown}s cooldown
-                        {option.stats.duration && ` • ${option.stats.duration}s duration`}
-                      </p>
+
+                      {/* Stats Bar */}
+                      <div className="flex space-x-3 text-xs">
+                        <div className={`flex items-center space-x-1 ${
+                          botConfig.special === option.type ? 'text-cyber-blue' : 'text-gray-400'
+                        }`}>
+                          <span>⏱️</span>
+                          <span className="font-mono">{option.stats.cooldown}s</span>
+                        </div>
+                        {option.stats.duration && (
+                          <div className={`flex items-center space-x-1 ${
+                            botConfig.special === option.type ? 'text-cyber-yellow' : 'text-gray-400'
+                          }`}>
+                            <span>⏳</span>
+                            <span className="font-mono">{option.stats.duration}s</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    {botConfig.special === option.type && (
-                      <div className="text-cyber-green text-xl">✓</div>
-                    )}
                   </div>
-                </motion.button>
+
+                  {/* Selection Indicator */}
+                  {botConfig.special === option.type && (
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: '100%' }}
+                      className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-cyber-orange to-cyber-purple"
+                    />
+                  )}
+                </motion.div>
               ))}
             </div>
           </div>

@@ -66,22 +66,14 @@ function App() {
             <div className="flex items-center space-x-4">
               <button
                 onClick={() => setCurrentMode('builder')}
-                className={`px-4 py-2 rounded-lg transition-all duration-200 ${
-                  currentMode === 'builder'
-                    ? 'bg-cyber-blue text-dark-bg'
-                    : 'text-gray-400 hover:text-white hover:bg-dark-bg'
-                }`}
+                className={`btn-nav ${currentMode === 'builder' ? 'active' : ''}`}
               >
                 🔧 Builder
               </button>
 
               <button
                 onClick={handleOpenProgression}
-                className={`px-4 py-2 rounded-lg transition-all duration-200 ${
-                  currentMode === 'progression'
-                    ? 'bg-cyber-purple text-white'
-                    : 'text-gray-400 hover:text-white hover:bg-dark-bg'
-                }`}
+                className={`btn-nav ${currentMode === 'progression' ? 'active' : ''}`}
               >
                 📊 Progress
               </button>

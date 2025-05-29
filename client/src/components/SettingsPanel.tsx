@@ -82,7 +82,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
             )}
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-white text-3xl font-bold"
+              className="btn-close"
             >
               ×
             </button>
@@ -97,10 +97,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as keyof UserPreferences)}
-                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-all duration-200 ${
-                    activeTab === tab.id
-                      ? 'bg-cyber-blue text-dark-bg'
-                      : 'text-gray-400 hover:text-white hover:bg-dark-bg'
+                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left btn-tab ${
+                    activeTab === tab.id ? 'active' : ''
                   }`}
                 >
                   <span className="text-lg">{tab.icon}</span>
@@ -113,7 +111,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
             <div className="mt-8 space-y-2">
               <button
                 onClick={resetToDefaults}
-                className="w-full btn-cyber-secondary text-sm"
+                className="w-full btn-small"
               >
                 Reset to Defaults
               </button>
@@ -127,7 +125,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
                   a.download = `battlebot-backup-${new Date().toISOString().split('T')[0]}.json`;
                   a.click();
                 }}
-                className="w-full btn-cyber-secondary text-sm"
+                className="w-full btn-small"
               >
                 Export Data
               </button>
@@ -602,13 +600,17 @@ const ToggleSetting: React.FC<{
     </div>
     <button
       onClick={() => onChange(!value)}
-      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-        value ? 'bg-cyber-blue' : 'bg-gray-600'
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-300 border-2 ${
+        value
+          ? 'bg-gradient-to-r from-cyber-blue to-cyber-purple border-cyber-blue shadow-cyber-blue/30'
+          : 'bg-gray-700 border-gray-600 hover:border-gray-500'
       }`}
     >
       <span
-        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-          value ? 'translate-x-6' : 'translate-x-1'
+        className={`inline-block h-4 w-4 transform rounded-full transition-all duration-300 ${
+          value
+            ? 'translate-x-6 bg-white shadow-lg'
+            : 'translate-x-1 bg-gray-300'
         }`}
       />
     </button>
@@ -626,7 +628,7 @@ const SelectSetting: React.FC<{
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="bg-dark-bg border border-gray-600 rounded px-3 py-1 text-white"
+      className="bg-dark-surface border-2 border-cyber-blue/40 rounded-lg px-3 py-2 text-white hover:border-cyber-blue focus:border-cyber-blue focus:outline-none transition-all duration-300 font-mono"
     >
       {options.map(option => (
         <option key={option.value} value={option.value}>
@@ -657,7 +659,7 @@ const SliderSetting: React.FC<{
       step={step}
       value={value}
       onChange={(e) => onChange(Number(e.target.value))}
-      className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer slider"
+      className="w-full"
     />
   </div>
 );
@@ -683,10 +685,10 @@ const KeybindSetting: React.FC<{
       <button
         onClick={() => setIsListening(true)}
         onKeyDown={handleKeyPress}
-        className={`px-3 py-1 rounded border font-mono text-sm ${
+        className={`px-3 py-1 rounded-lg border-2 font-mono text-sm transition-all duration-300 ${
           isListening
-            ? 'bg-cyber-blue text-dark-bg border-cyber-blue'
-            : 'bg-dark-bg text-white border-gray-600 hover:border-gray-400'
+            ? 'bg-gradient-to-r from-cyber-blue to-cyber-purple text-white border-cyber-blue shadow-cyber-blue/30 animate-pulse'
+            : 'bg-dark-surface text-cyber-blue border-cyber-blue/40 hover:border-cyber-blue hover:bg-cyber-blue/10'
         }`}
       >
         {isListening ? 'Press key...' : value.replace('Key', '').replace('Arrow', '')}
