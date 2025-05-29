@@ -10,10 +10,15 @@
     "build:client": "cd client && npm run build",
     "start": "npm run start:server",
     "start:server": "cd server && npm start",
-    "test": "npm run test:server && npm run test:client",
+    "test": "npm run test:e2e",
     "test:server": "cd server && npm test",
     "test:client": "cd client && npm test",
-    "test:compile": "npm run build:server && npm run build:client"
+    "test:compile": "npm run build:server && npm run build:client",
+    "test:e2e": "cd tests && node test-runner.js",
+    "test:e2e:functionality": "cd tests && node test-runner.js functionality",
+    "test:e2e:usability": "cd tests && node test-runner.js usability",
+    "test:e2e:performance": "cd tests && node test-runner.js performance",
+    "test:all": "npm run test:server && npm run test:client && npm run test:e2e"
   },
   "keywords": [
     "game",

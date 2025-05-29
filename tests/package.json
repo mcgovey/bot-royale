@@ -1,0 +1,26 @@
+{
+  "name": "battlebot-arena-tests",
+  "version": "1.0.0",
+  "description": "Test suite for BattleBot Arena",
+  "main": "test-runner.js",
+  "scripts": {
+    "test": "node test-runner.js",
+    "test:functionality": "node test-runner.js functionality",
+    "test:usability": "node test-runner.js usability",
+    "test:performance": "node test-runner.js performance",
+    "test:all": "node test-runner.js"
+  },
+  "dependencies": {
+    "puppeteer": "^21.0.0"
+  },
+  "devDependencies": {},
+  "keywords": [
+    "testing",
+    "e2e",
+    "puppeteer",
+    "battlebot",
+    "arena"
+  ],
+  "author": "BattleBot Arena Team",
+  "license": "MIT"
+}

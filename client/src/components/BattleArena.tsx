@@ -36,6 +36,7 @@ interface BotState {
   velocity: { x: number; z: number };
   isShielded: boolean;
   speedBoostTime: number;
+  strategy?: string;
 }
 
 interface Projectile {
@@ -197,12 +198,19 @@ const ProjectileComponent: React.FC<{ projectile: Projectile }> = ({ projectile 
 };
 
 const BattleArena: React.FC<BattleArenaProps> = ({ playerBot, onBackToBuilder }) => {
-  const [battleTime, setBattleTime] = useState(60);
+  const [battleTime, setBattleTime] = useState(180);
   const [bots, setBots] = useState<BotState[]>([]);
   const [projectiles, setProjectiles] = useState<Projectile[]>([]);
   const [battleEnded, setBattleEnded] = useState(false);
   const [winner, setWinner] = useState<string>('');
   const [keys, setKeys] = useState<Set<string>>(new Set());
+  const [showTutorial, setShowTutorial] = useState(true);
+  const [battleStats, setBattleStats] = useState({
+    damageDealt: 0,
+    shotsFired: 0,
+    specialsUsed: 0,
+    timeAlive: 0
+  });
 
   // Initialize battle
   useEffect(() => {
@@ -222,24 +230,44 @@ const BattleArena: React.FC<BattleArenaProps> = ({ playerBot, onBackToBuilder })
       rotation: 0,
       velocity: { x: 0, z: 0 },
       isShielded: false,
-      speedBoostTime: 0
+      speedBoostTime: 0,
+      strategy: ''
     };
 
-    // Create AI opponents
+    // Create more challenging AI opponents with varied strategies
     const aiConfigs = [
-      { chassis: ChassisType.SPEED, weapon: WeaponType.BLASTER, special: SpecialType.SPEED_BOOST },
-      { chassis: ChassisType.TANK, weapon: WeaponType.CANNON, special: SpecialType.SHIELD },
+      {
+        chassis: ChassisType.SPEED,
+        weapon: WeaponType.BLASTER,
+        special: SpecialType.SPEED_BOOST,
+        strategy: 'aggressive',
+        name: 'Speedster'
+      },
+      {
+        chassis: ChassisType.TANK,
+        weapon: WeaponType.CANNON,
+        special: SpecialType.SHIELD,
+        strategy: 'defensive',
+        name: 'Guardian'
+      },
+      {
+        chassis: ChassisType.BALANCED,
+        weapon: WeaponType.SHOTGUN,
+        special: SpecialType.REPAIR,
+        strategy: 'tactical',
+        name: 'Tactician'
+      }
     ];
 
     const aiBots = aiConfigs.map((config, index) => ({
       id: `ai-${index}`,
-      name: `AI Bot ${index + 1}`,
-      x: 6,
+      name: config.name,
+      x: 6 + (index * 2),
       y: 0,
-      z: index * 3 - 1.5,
+      z: index * 3 - 3,
       health: CHASSIS_STATS[config.chassis].health,
       maxHealth: CHASSIS_STATS[config.chassis].health,
-      color: ['#ff4444', '#ff8800'][index],
+      color: ['#ff4444', '#ff8800', '#44ff44'][index],
       isPlayer: false,
       lastFired: 0,
       specialCooldown: 0,
@@ -247,17 +275,21 @@ const BattleArena: React.FC<BattleArenaProps> = ({ playerBot, onBackToBuilder })
         chassis: config.chassis,
         weapon: config.weapon,
         special: config.special,
-        name: `AI Bot ${index + 1}`,
-        primaryColor: ['#ff4444', '#ff8800'][index],
+        name: config.name,
+        primaryColor: ['#ff4444', '#ff8800', '#44ff44'][index],
         secondaryColor: '#aa2222'
       },
       rotation: Math.PI,
       velocity: { x: 0, z: 0 },
       isShielded: false,
-      speedBoostTime: 0
+      speedBoostTime: 0,
+      strategy: config.strategy
     }));
 
     setBots([playerBotState, ...aiBots]);
+
+    // Auto-hide tutorial after 8 seconds
+    setTimeout(() => setShowTutorial(false), 8000);
   }, [playerBot]);
 
   // Keyboard controls
@@ -379,6 +411,9 @@ const BattleArena: React.FC<BattleArenaProps> = ({ playerBot, onBackToBuilder })
                     damage: weaponStats.damage,
                     ownerId: bot.id
                   }]);
+
+                  // Track player stats
+                  setBattleStats(prev => ({ ...prev, shotsFired: prev.shotsFired + 1 }));
                 }
               }
             }
@@ -386,6 +421,7 @@ const BattleArena: React.FC<BattleArenaProps> = ({ playerBot, onBackToBuilder })
             // Player special ability
             if (keys.has('KeyE') && bot.specialCooldown <= 0) {
               bot.specialCooldown = SPECIAL_STATS[bot.config.special].cooldown;
+              setBattleStats(prev => ({ ...prev, specialsUsed: prev.specialsUsed + 1 }));
 
               switch (bot.config.special) {
                 case SpecialType.SHIELD:
@@ -400,29 +436,83 @@ const BattleArena: React.FC<BattleArenaProps> = ({ playerBot, onBackToBuilder })
                   }, 5000);
                   break;
                 case SpecialType.SPEED_BOOST:
-                  bot.speedBoostTime = 3;
+                  bot.speedBoostTime = 4; // Updated duration
                   break;
                 case SpecialType.REPAIR:
-                  bot.health = Math.min(bot.maxHealth, bot.health + 2);
+                  bot.health = Math.min(bot.maxHealth, bot.health + 5); // Updated heal amount
                   break;
               }
             }
           } else {
-            // AI behavior
+            // Enhanced AI behavior with different strategies
             const player = newBots.find(b => b.isPlayer && b.health > 0);
+            const otherAI = newBots.filter(b => !b.isPlayer && b.health > 0 && b.id !== bot.id);
+
             if (player) {
               const dx = player.x - bot.x;
               const dz = player.z - bot.z;
               const distance = Math.sqrt(dx * dx + dz * dz);
+              const speed = CHASSIS_STATS[bot.config.chassis].speed * 0.08; // Slightly faster AI
 
-              // AI movement
-              const speed = CHASSIS_STATS[bot.config.chassis].speed * 0.05;
-              if (distance > 4) {
-                bot.x += (dx / distance) * speed;
-                bot.z += (dz / distance) * speed;
-              } else if (distance < 2) {
-                bot.x -= (dx / distance) * speed;
-                bot.z -= (dz / distance) * speed;
+              // Strategy-based AI behavior
+              switch (bot.strategy) {
+                case 'aggressive':
+                  // Always chase player, use special when close
+                  if (distance > 3) {
+                    bot.x += (dx / distance) * speed * 1.2;
+                    bot.z += (dz / distance) * speed * 1.2;
+                  }
+                  if (bot.specialCooldown <= 0 && distance < 5) {
+                    bot.specialCooldown = SPECIAL_STATS[bot.config.special].cooldown;
+                    bot.speedBoostTime = 4;
+                  }
+                  break;
+
+                case 'defensive':
+                  // Maintain distance, use shield when health is low
+                  const idealDistance = 6;
+                  if (distance < idealDistance) {
+                    bot.x -= (dx / distance) * speed;
+                    bot.z -= (dz / distance) * speed;
+                  } else if (distance > idealDistance + 2) {
+                    bot.x += (dx / distance) * speed * 0.7;
+                    bot.z += (dz / distance) * speed * 0.7;
+                  }
+                  if (bot.specialCooldown <= 0 && bot.health < bot.maxHealth * 0.4) {
+                    bot.specialCooldown = SPECIAL_STATS[bot.config.special].cooldown;
+                    bot.isShielded = true;
+                    setTimeout(() => {
+                      setBots(prevBots => {
+                        const updatedBots = [...prevBots];
+                        const aiBot = updatedBots.find(b => b.id === bot.id);
+                        if (aiBot) aiBot.isShielded = false;
+                        return updatedBots;
+                      });
+                    }, 5000);
+                  }
+                  break;
+
+                case 'tactical':
+                  // Circle around player, use repair strategically
+                  const angle = Math.atan2(dz, dx) + 0.5; // Circular movement
+                  const targetDistance = 5;
+                  bot.x += Math.cos(angle) * speed;
+                  bot.z += Math.sin(angle) * speed;
+
+                  // Move towards ideal distance
+                  if (distance < targetDistance - 1) {
+                    bot.x -= (dx / distance) * speed * 0.5;
+                    bot.z -= (dz / distance) * speed * 0.5;
+                  } else if (distance > targetDistance + 1) {
+                    bot.x += (dx / distance) * speed * 0.5;
+                    bot.z += (dz / distance) * speed * 0.5;
+                  }
+
+                  if (bot.specialCooldown <= 0 && bot.health < bot.maxHealth * 0.6) {
+                    bot.specialCooldown = SPECIAL_STATS[bot.config.special].cooldown;
+                    bot.health = Math.min(bot.maxHealth, bot.health + 5);
+                  }
+                  break;
               }
 
               // Keep in bounds
@@ -432,21 +522,25 @@ const BattleArena: React.FC<BattleArenaProps> = ({ playerBot, onBackToBuilder })
               // AI rotation
               bot.rotation = Math.atan2(dx, dz);
 
-              // AI shooting
+              // Enhanced AI shooting with better accuracy
               const weaponStats = WEAPON_STATS[bot.config.weapon];
-          const timeSinceLastFire = currentTime - bot.lastFired;
-          const fireInterval = 1000 / weaponStats.fireRate;
+              const timeSinceLastFire = currentTime - bot.lastFired;
+              const fireInterval = 1000 / weaponStats.fireRate;
 
-          if (distance <= weaponStats.range && timeSinceLastFire >= fireInterval) {
-            bot.lastFired = currentTime;
+              if (distance <= weaponStats.range && timeSinceLastFire >= fireInterval) {
+                // Add some prediction to AI shooting
+                const predictedX = player.x + (player.velocity?.x || 0) * 2;
+                const predictedZ = player.z + (player.velocity?.z || 0) * 2;
+
+                bot.lastFired = currentTime;
 
                 setProjectiles(prev => [...prev, {
                   id: `${bot.id}-${currentTime}`,
                   x: bot.x,
                   y: 0.5,
                   z: bot.z,
-                  targetX: player.x,
-                  targetZ: player.z,
+                  targetX: predictedX,
+                  targetZ: predictedZ,
                   speed: 0.3,
                   damage: weaponStats.damage,
                   ownerId: bot.id
@@ -494,6 +588,14 @@ const BattleArena: React.FC<BattleArenaProps> = ({ playerBot, onBackToBuilder })
                   target.isShielded = false;
                 } else {
                   target.health = Math.max(0, target.health - projectile.damage);
+
+                  // Track damage dealt by player
+                  if (projectile.ownerId === 'player') {
+                    setBattleStats(prev => ({
+                      ...prev,
+                      damageDealt: prev.damageDealt + projectile.damage
+                    }));
+                  }
                 }
               }
 
@@ -617,6 +719,29 @@ const BattleArena: React.FC<BattleArenaProps> = ({ playerBot, onBackToBuilder })
         >
           <h2 className="text-xl font-bold text-cyber-purple mb-4 glow-text">Battle Status</h2>
 
+          {/* Battle Statistics */}
+          <div className="panel-cyber p-4 mb-4 bg-gradient-to-br from-cyber-blue/10 to-transparent">
+            <h3 className="font-bold text-cyber-blue mb-3 glow-text">Your Stats</h3>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="text-center">
+                <div className="text-cyber-green font-bold text-lg">{battleStats.damageDealt}</div>
+                <div className="text-gray-400">Damage</div>
+              </div>
+              <div className="text-center">
+                <div className="text-cyber-yellow font-bold text-lg">{battleStats.shotsFired}</div>
+                <div className="text-gray-400">Shots</div>
+              </div>
+              <div className="text-center">
+                <div className="text-cyber-purple font-bold text-lg">{battleStats.specialsUsed}</div>
+                <div className="text-gray-400">Specials</div>
+              </div>
+              <div className="text-center">
+                <div className="text-cyber-orange font-bold text-lg">{Math.floor((180 - battleTime) / 60)}:{String((180 - battleTime) % 60).padStart(2, '0')}</div>
+                <div className="text-gray-400">Alive</div>
+              </div>
+            </div>
+          </div>
+
           {/* Bot Stats */}
           <div className="space-y-4 mb-6">
             {bots.map(bot => (
@@ -624,6 +749,8 @@ const BattleArena: React.FC<BattleArenaProps> = ({ playerBot, onBackToBuilder })
                 <div className="flex items-center justify-between mb-2">
                   <span className={`font-bold ${bot.isPlayer ? 'text-cyber-blue' : 'text-cyber-red'}`}>
                     {bot.name}
+                    {bot.isPlayer && bot.isShielded && <span className="text-cyber-green ml-2">🛡️</span>}
+                    {bot.isPlayer && bot.speedBoostTime > 0 && <span className="text-cyber-yellow ml-2">⚡</span>}
                   </span>
                   <span className="text-sm text-gray-400">
                     {bot.health}/{bot.maxHealth} HP
@@ -654,10 +781,56 @@ const BattleArena: React.FC<BattleArenaProps> = ({ playerBot, onBackToBuilder })
               <div><span className="text-cyber-green">WASD/Arrows:</span> Move</div>
               <div><span className="text-cyber-yellow">Space:</span> Shoot</div>
               <div><span className="text-cyber-purple">E:</span> Special Ability</div>
+              <div><span className="text-cyber-orange">Mouse:</span> Camera</div>
             </div>
           </div>
         </motion.div>
       </div>
+
+      {/* Tutorial Overlay */}
+      {showTutorial && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center z-40"
+        >
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="panel-cyber p-8 text-center max-w-lg mx-4"
+          >
+            <h2 className="text-3xl font-bold text-cyber-blue mb-4 glow-text">
+              Battle Tutorial
+            </h2>
+            <div className="text-left space-y-3 mb-6">
+              <p className="text-gray-300">
+                <span className="text-cyber-green font-bold">WASD/Arrows:</span> Move your bot around the arena
+              </p>
+              <p className="text-gray-300">
+                <span className="text-cyber-yellow font-bold">Space:</span> Fire your weapon at enemies
+              </p>
+              <p className="text-gray-300">
+                <span className="text-cyber-purple font-bold">E:</span> Use your special ability
+              </p>
+              <p className="text-gray-300">
+                <span className="text-cyber-orange font-bold">Mouse:</span> Control the camera view
+              </p>
+              <p className="text-cyber-red font-bold mt-4">
+                Survive 3 minutes against 3 AI opponents!
+              </p>
+            </div>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setShowTutorial(false)}
+              className="btn-cyber-primary text-lg px-8 py-3"
+            >
+              Start Battle!
+            </motion.button>
+          </motion.div>
+        </motion.div>
+      )}
 
       {/* Battle Result Modal */}
       {battleEnded && (
@@ -674,9 +847,35 @@ const BattleArena: React.FC<BattleArenaProps> = ({ playerBot, onBackToBuilder })
             <h2 className="text-4xl font-bold text-cyber-yellow mb-4 glow-text">
               Battle Complete!
             </h2>
-            <p className="text-2xl text-white mb-6">
+            <p className="text-2xl text-white mb-4">
               Winner: <span className="text-cyber-green glow-text">{winner}</span>
             </p>
+
+            {/* Final Stats */}
+            <div className="panel-cyber p-4 mb-6 bg-gradient-to-br from-cyber-blue/10 to-transparent">
+              <h3 className="font-bold text-cyber-blue mb-3">Final Stats</h3>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="text-center">
+                  <div className="text-cyber-green font-bold">{battleStats.damageDealt}</div>
+                  <div className="text-gray-400">Damage Dealt</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-cyber-yellow font-bold">{battleStats.shotsFired}</div>
+                  <div className="text-gray-400">Shots Fired</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-cyber-purple font-bold">{battleStats.specialsUsed}</div>
+                  <div className="text-gray-400">Specials Used</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-cyber-orange font-bold">
+                    {battleStats.shotsFired > 0 ? Math.round((battleStats.damageDealt / battleStats.shotsFired) * 100) : 0}%
+                  </div>
+                  <div className="text-gray-400">Accuracy</div>
+                </div>
+              </div>
+            </div>
+
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}

@@ -132,19 +132,19 @@ export interface BotInput {
 
 // Game Constants
 export const CHASSIS_STATS: Record<ChassisType, ChassisStats> = {
-  [ChassisType.SPEED]: { health: 3, speed: 8 },
-  [ChassisType.TANK]: { health: 8, speed: 3 },
-  [ChassisType.BALANCED]: { health: 5, speed: 5 }
+  [ChassisType.SPEED]: { health: 12, speed: 8 },
+  [ChassisType.TANK]: { health: 25, speed: 3 },
+  [ChassisType.BALANCED]: { health: 18, speed: 5 }
 };
 
 export const WEAPON_STATS: Record<WeaponType, WeaponStats> = {
-  [WeaponType.BLASTER]: { damage: 1, fireRate: 3, range: 100 },
-  [WeaponType.CANNON]: { damage: 3, fireRate: 0.5, range: 120 },
-  [WeaponType.SHOTGUN]: { damage: 2, fireRate: 1.5, range: 60 }
+  [WeaponType.BLASTER]: { damage: 2, fireRate: 2.5, range: 100 },
+  [WeaponType.CANNON]: { damage: 5, fireRate: 0.8, range: 120 },
+  [WeaponType.SHOTGUN]: { damage: 3, fireRate: 1.8, range: 60 }
 };
 
 export const SPECIAL_STATS: Record<SpecialType, SpecialStats> = {
-  [SpecialType.SHIELD]: { cooldown: 10, effect: 'block_next_attack' },
-  [SpecialType.SPEED_BOOST]: { cooldown: 15, duration: 3, effect: 'double_speed' },
-  [SpecialType.REPAIR]: { cooldown: 20, effect: 'restore_2_hp' }
+  [SpecialType.SHIELD]: { cooldown: 12, effect: 'block_next_attack' },
+  [SpecialType.SPEED_BOOST]: { cooldown: 18, duration: 4, effect: 'double_speed' },
+  [SpecialType.REPAIR]: { cooldown: 25, effect: 'restore_5_hp' }
 };

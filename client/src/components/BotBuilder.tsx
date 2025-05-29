@@ -274,18 +274,25 @@ const BotBuilder: React.FC<BotBuilderProps> = ({ botConfig, setBotConfig, onStar
                   className={`w-full p-4 rounded-lg border-2 transition-all duration-300 ${
                     botConfig.chassis === option.type
                       ? `border-${option.color} bg-${option.color}/20 shadow-lg shadow-${option.color}/30`
-                      : 'border-gray-600 hover:border-gray-400 bg-dark-surface/50'
+                      : 'border-gray-500 hover:border-gray-300 bg-dark-surface/80 hover:bg-dark-surface'
                   }`}
                 >
                   <div className="flex items-center space-x-3">
                     <span className="text-3xl">{option.icon}</span>
                     <div className="flex-1 text-left">
-                      <p className="font-bold text-white">{option.name}</p>
-                      <p className="text-xs text-gray-400">{option.description}</p>
-                      <p className="text-xs text-gray-300 mt-1">
+                      <p className={`font-bold ${botConfig.chassis === option.type ? 'text-white' : 'text-gray-200'}`}>
+                        {option.name}
+                      </p>
+                      <p className={`text-xs ${botConfig.chassis === option.type ? 'text-gray-300' : 'text-gray-400'}`}>
+                        {option.description}
+                      </p>
+                      <p className={`text-xs mt-1 font-medium ${botConfig.chassis === option.type ? 'text-gray-200' : 'text-gray-300'}`}>
                         {option.stats.health} HP • Speed {option.stats.speed}
                       </p>
                     </div>
+                    {botConfig.chassis === option.type && (
+                      <div className="text-cyber-green text-xl">✓</div>
+                    )}
                   </div>
                 </motion.button>
               ))}
@@ -305,18 +312,25 @@ const BotBuilder: React.FC<BotBuilderProps> = ({ botConfig, setBotConfig, onStar
                   className={`w-full p-4 rounded-lg border-2 transition-all duration-300 ${
                     botConfig.weapon === option.type
                       ? `border-${option.color} bg-${option.color}/20 shadow-lg shadow-${option.color}/30`
-                      : 'border-gray-600 hover:border-gray-400 bg-dark-surface/50'
+                      : 'border-gray-500 hover:border-gray-300 bg-dark-surface/80 hover:bg-dark-surface'
                   }`}
                 >
                   <div className="flex items-center space-x-3">
                     <span className="text-3xl">{option.icon}</span>
                     <div className="flex-1 text-left">
-                      <p className="font-bold text-white">{option.name}</p>
-                      <p className="text-xs text-gray-400">{option.description}</p>
-                      <p className="text-xs text-gray-300 mt-1">
+                      <p className={`font-bold ${botConfig.weapon === option.type ? 'text-white' : 'text-gray-200'}`}>
+                        {option.name}
+                      </p>
+                      <p className={`text-xs ${botConfig.weapon === option.type ? 'text-gray-300' : 'text-gray-400'}`}>
+                        {option.description}
+                      </p>
+                      <p className={`text-xs mt-1 font-medium ${botConfig.weapon === option.type ? 'text-gray-200' : 'text-gray-300'}`}>
                         {option.stats.damage} DMG • {option.stats.fireRate}/s • {option.stats.range}m
                       </p>
                     </div>
+                    {botConfig.weapon === option.type && (
+                      <div className="text-cyber-green text-xl">✓</div>
+                    )}
                   </div>
                 </motion.button>
               ))}
@@ -336,19 +350,26 @@ const BotBuilder: React.FC<BotBuilderProps> = ({ botConfig, setBotConfig, onStar
                   className={`w-full p-4 rounded-lg border-2 transition-all duration-300 ${
                     botConfig.special === option.type
                       ? `border-${option.color} bg-${option.color}/20 shadow-lg shadow-${option.color}/30`
-                      : 'border-gray-600 hover:border-gray-400 bg-dark-surface/50'
+                      : 'border-gray-500 hover:border-gray-300 bg-dark-surface/80 hover:bg-dark-surface'
                   }`}
                 >
                   <div className="flex items-center space-x-3">
                     <span className="text-3xl">{option.icon}</span>
                     <div className="flex-1 text-left">
-                      <p className="font-bold text-white">{option.name}</p>
-                      <p className="text-xs text-gray-400">{option.description}</p>
-                      <p className="text-xs text-gray-300 mt-1">
+                      <p className={`font-bold ${botConfig.special === option.type ? 'text-white' : 'text-gray-200'}`}>
+                        {option.name}
+                      </p>
+                      <p className={`text-xs ${botConfig.special === option.type ? 'text-gray-300' : 'text-gray-400'}`}>
+                        {option.description}
+                      </p>
+                      <p className={`text-xs mt-1 font-medium ${botConfig.special === option.type ? 'text-gray-200' : 'text-gray-300'}`}>
                         {option.stats.cooldown}s cooldown
                         {option.stats.duration && ` • ${option.stats.duration}s duration`}
                       </p>
                     </div>
+                    {botConfig.special === option.type && (
+                      <div className="text-cyber-green text-xl">✓</div>
+                    )}
                   </div>
                 </motion.button>
               ))}
