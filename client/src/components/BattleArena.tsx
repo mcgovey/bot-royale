@@ -3,6 +3,7 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Environment, Text } from '@react-three/drei';
 import { motion } from 'framer-motion';
 import { ChassisType, WeaponType, SpecialType, CHASSIS_STATS, WEAPON_STATS, SPECIAL_STATS } from '../types/game';
+import { useProgressionStore } from '../store/progressionStore';
 import Bot3D from './Bot3D';
 
 interface BotConfig {
@@ -208,9 +209,22 @@ const BattleArena: React.FC<BattleArenaProps> = ({ playerBot, onBackToBuilder })
   const [battleStats, setBattleStats] = useState({
     damageDealt: 0,
     shotsFired: 0,
+    shotsHit: 0,
     specialsUsed: 0,
-    timeAlive: 0
+    timeAlive: 0,
+    battleStartTime: Date.now(),
+    playerTookDamage: false
   });
+
+  // Get progression store
+  const progression = useProgressionStore();
+
+  // Get combat modifiers from mastery
+  const combatModifiers = progression.getCombatModifiers(
+    playerBot.chassis,
+    playerBot.weapon,
+    playerBot.special
+  );
 
   // Initialize battle
   useEffect(() => {
@@ -220,8 +234,8 @@ const BattleArena: React.FC<BattleArenaProps> = ({ playerBot, onBackToBuilder })
       x: -6,
       y: 0,
       z: 0,
-      health: CHASSIS_STATS[playerBot.chassis].health,
-      maxHealth: CHASSIS_STATS[playerBot.chassis].health,
+      health: Math.floor(CHASSIS_STATS[playerBot.chassis].health * combatModifiers.healthMultiplier),
+      maxHealth: Math.floor(CHASSIS_STATS[playerBot.chassis].health * combatModifiers.healthMultiplier),
       color: playerBot.primaryColor,
       isPlayer: true,
       lastFired: 0,
@@ -290,7 +304,7 @@ const BattleArena: React.FC<BattleArenaProps> = ({ playerBot, onBackToBuilder })
 
     // Auto-hide tutorial after 8 seconds
     setTimeout(() => setShowTutorial(false), 8000);
-  }, [playerBot]);
+  }, [playerBot, combatModifiers.healthMultiplier]);
 
   // Keyboard controls
   useEffect(() => {
@@ -345,7 +359,7 @@ const BattleArena: React.FC<BattleArenaProps> = ({ playerBot, onBackToBuilder })
     return () => clearInterval(timer);
   }, [battleEnded]);
 
-  // Game loop
+  // Main game loop
   useEffect(() => {
     if (battleEnded) return;
 
@@ -358,31 +372,78 @@ const BattleArena: React.FC<BattleArenaProps> = ({ playerBot, onBackToBuilder })
         newBots.forEach((bot, index) => {
           if (bot.health <= 0) return;
 
-          // Update special effects
+          // Apply speed boost time reduction
           if (bot.speedBoostTime > 0) {
             bot.speedBoostTime = Math.max(0, bot.speedBoostTime - 0.1);
           }
 
-          // Player movement
           if (bot.isPlayer) {
-            const speed = CHASSIS_STATS[bot.config.chassis].speed * 0.1 * (bot.speedBoostTime > 0 ? 2 : 1);
-            let moveX = 0, moveZ = 0;
+            // Player movement with mastery bonuses
+            const baseSpeed = CHASSIS_STATS[bot.config.chassis].speed * 0.08;
+            const modifiedSpeed = baseSpeed * combatModifiers.speedMultiplier * (bot.speedBoostTime > 0 ? 2 : 1);
 
-            if (keys.has('KeyW') || keys.has('ArrowUp')) moveZ -= speed;
-            if (keys.has('KeyS') || keys.has('ArrowDown')) moveZ += speed;
-            if (keys.has('KeyA') || keys.has('ArrowLeft')) moveX -= speed;
-            if (keys.has('KeyD') || keys.has('ArrowRight')) moveX += speed;
-
-            // Update position with bounds checking
-            bot.x = Math.max(-9, Math.min(9, bot.x + moveX));
-            bot.z = Math.max(-9, Math.min(9, bot.z + moveZ));
-
-            // Update rotation based on movement
-            if (moveX !== 0 || moveZ !== 0) {
-              bot.rotation = Math.atan2(moveX, moveZ);
+            if (keys.has('KeyW') || keys.has('ArrowUp')) {
+              bot.z -= modifiedSpeed;
+              bot.rotation = 0;
+            }
+            if (keys.has('KeyS') || keys.has('ArrowDown')) {
+              bot.z += modifiedSpeed;
+              bot.rotation = Math.PI;
+            }
+            if (keys.has('KeyA') || keys.has('ArrowLeft')) {
+              bot.x -= modifiedSpeed;
+              bot.rotation = Math.PI / 2;
+            }
+            if (keys.has('KeyD') || keys.has('ArrowRight')) {
+              bot.x += modifiedSpeed;
+              bot.rotation = -Math.PI / 2;
             }
 
-            // Player shooting
+            // Keep in bounds
+            bot.x = Math.max(-9, Math.min(9, bot.x));
+            bot.z = Math.max(-9, Math.min(9, bot.z));
+
+            // Player special abilities
+            if (keys.has('KeyE') && bot.specialCooldown <= 0) {
+              const cooldownReduction = 1 - combatModifiers.cooldownReduction;
+              bot.specialCooldown = SPECIAL_STATS[bot.config.special].cooldown * cooldownReduction;
+
+              // Record special ability usage
+              progression.recordProgressionEvent({
+                type: 'special_used',
+                timestamp: new Date(),
+                data: {
+                  specialUsed: bot.config.special,
+                  chassisUsed: bot.config.chassis,
+                  weaponUsed: bot.config.weapon
+                }
+              });
+
+              setBattleStats(prev => ({ ...prev, specialsUsed: prev.specialsUsed + 1 }));
+
+              switch (bot.config.special) {
+                case SpecialType.SHIELD:
+                  bot.isShielded = true;
+                  setTimeout(() => {
+                    setBots(prevBots => {
+                      const updatedBots = [...prevBots];
+                      const playerBot = updatedBots.find(b => b.isPlayer);
+                      if (playerBot) playerBot.isShielded = false;
+                      return updatedBots;
+                    });
+                  }, 5000);
+                  break;
+                case SpecialType.SPEED_BOOST:
+                  bot.speedBoostTime = SPECIAL_STATS[SpecialType.SPEED_BOOST].duration || 4;
+                  break;
+                case SpecialType.REPAIR:
+                  const repairAmount = 5 * (1 + (combatModifiers.specialEffects.dualSpecial ? 0.5 : 0));
+                  bot.health = Math.min(bot.maxHealth, bot.health + repairAmount);
+                  break;
+              }
+            }
+
+            // Player shooting with mastery bonuses
             if (keys.has('Space')) {
               const weaponStats = WEAPON_STATS[bot.config.weapon];
               const timeSinceLastFire = currentTime - bot.lastFired;
@@ -390,6 +451,17 @@ const BattleArena: React.FC<BattleArenaProps> = ({ playerBot, onBackToBuilder })
 
               if (timeSinceLastFire >= fireInterval) {
                 bot.lastFired = currentTime;
+
+                // Record shot fired
+                progression.recordProgressionEvent({
+                  type: 'shot_fired',
+                  timestamp: new Date(),
+                  data: {
+                    weaponUsed: bot.config.weapon,
+                    chassisUsed: bot.config.chassis,
+                    specialUsed: bot.config.special
+                  }
+                });
 
                 // Find nearest enemy
                 const enemies = newBots.filter(b => !b.isPlayer && b.health > 0);
@@ -400,6 +472,36 @@ const BattleArena: React.FC<BattleArenaProps> = ({ playerBot, onBackToBuilder })
                     return distToEnemy < distToNearest ? enemy : nearest;
                   });
 
+                  // Apply accuracy bonus from mastery
+                  const accuracyBonus = combatModifiers.accuracyBonus;
+                  const hitChance = 0.7 + accuracyBonus; // Base 70% + mastery bonus
+
+                  const willHit = Math.random() < hitChance;
+
+                  if (willHit) {
+                    // Record successful hit
+                    progression.recordProgressionEvent({
+                      type: 'shot_hit',
+                      timestamp: new Date(),
+                      data: {
+                        weaponUsed: bot.config.weapon,
+                        chassisUsed: bot.config.chassis,
+                        specialUsed: bot.config.special
+                      }
+                    });
+
+                    setBattleStats(prev => ({
+                      ...prev,
+                      shotsFired: prev.shotsFired + 1,
+                      shotsHit: prev.shotsHit + 1
+                    }));
+                  } else {
+                    setBattleStats(prev => ({ ...prev, shotsFired: prev.shotsFired + 1 }));
+                  }
+
+                  const baseDamage = weaponStats.damage;
+                  const modifiedDamage = Math.floor(baseDamage * combatModifiers.damageMultiplier);
+
                   setProjectiles(prev => [...prev, {
                     id: `${bot.id}-${currentTime}`,
                     x: bot.x,
@@ -408,45 +510,15 @@ const BattleArena: React.FC<BattleArenaProps> = ({ playerBot, onBackToBuilder })
                     targetX: nearestEnemy.x,
                     targetZ: nearestEnemy.z,
                     speed: 0.3,
-                    damage: weaponStats.damage,
+                    damage: modifiedDamage,
                     ownerId: bot.id
                   }]);
-
-                  // Track player stats
-                  setBattleStats(prev => ({ ...prev, shotsFired: prev.shotsFired + 1 }));
                 }
-              }
-            }
-
-            // Player special ability
-            if (keys.has('KeyE') && bot.specialCooldown <= 0) {
-              bot.specialCooldown = SPECIAL_STATS[bot.config.special].cooldown;
-              setBattleStats(prev => ({ ...prev, specialsUsed: prev.specialsUsed + 1 }));
-
-              switch (bot.config.special) {
-                case SpecialType.SHIELD:
-                  bot.isShielded = true;
-                  setTimeout(() => {
-                    setBots(prevBots => {
-                      const updatedBots = [...prevBots];
-                      const playerBot = updatedBots.find(b => b.id === bot.id);
-                      if (playerBot) playerBot.isShielded = false;
-                      return updatedBots;
-                    });
-                  }, 5000);
-                  break;
-                case SpecialType.SPEED_BOOST:
-                  bot.speedBoostTime = 4; // Updated duration
-                  break;
-                case SpecialType.REPAIR:
-                  bot.health = Math.min(bot.maxHealth, bot.health + 5); // Updated heal amount
-                  break;
               }
             }
           } else {
             // Enhanced AI behavior with different strategies
             const player = newBots.find(b => b.isPlayer && b.health > 0);
-            const otherAI = newBots.filter(b => !b.isPlayer && b.health > 0 && b.id !== bot.id);
 
             if (player) {
               const dx = player.x - bot.x;
@@ -563,12 +635,56 @@ const BattleArena: React.FC<BattleArenaProps> = ({ playerBot, onBackToBuilder })
         if (!alivePlayer || aliveAI.length === 0) {
           setBattleEnded(true);
           setWinner(alivePlayer ? alivePlayer.name : 'AI Bots');
+
+          // Record battle completion and victory
+          const battleDuration = (Date.now() - battleStats.battleStartTime) / 1000;
+          const isVictory = !!alivePlayer;
+          const isPerfect = isVictory && !battleStats.playerTookDamage;
+
+          progression.recordProgressionEvent({
+            type: 'battle_completed',
+            timestamp: new Date(),
+            data: {
+              battleDuration,
+              isVictory,
+              isPerfect,
+              chassisUsed: playerBot.chassis,
+              weaponUsed: playerBot.weapon,
+              specialUsed: playerBot.special
+            }
+          });
+
+          if (isVictory) {
+            progression.recordProgressionEvent({
+              type: 'battle_won',
+              timestamp: new Date(),
+              data: {
+                battleDuration,
+                isPerfect,
+                chassisUsed: playerBot.chassis,
+                weaponUsed: playerBot.weapon,
+                specialUsed: playerBot.special
+              }
+            });
+
+            if (isPerfect) {
+              progression.recordProgressionEvent({
+                type: 'perfect_battle',
+                timestamp: new Date(),
+                data: {
+                  chassisUsed: playerBot.chassis,
+                  weaponUsed: playerBot.weapon,
+                  specialUsed: playerBot.special
+                }
+              });
+            }
+          }
         }
 
         return newBots;
       });
 
-      // Update projectiles
+      // Update projectiles and handle damage
       setProjectiles(prevProjectiles => {
         return prevProjectiles.filter(projectile => {
           const dx = projectile.targetX - projectile.x;
@@ -587,14 +703,41 @@ const BattleArena: React.FC<BattleArenaProps> = ({ playerBot, onBackToBuilder })
                 if (target.isShielded) {
                   target.isShielded = false;
                 } else {
-                  target.health = Math.max(0, target.health - projectile.damage);
+                  // Apply dodge chance for players with mastery
+                  let willHit = true;
+                  if (target.isPlayer && Math.random() < combatModifiers.dodgeChance) {
+                    willHit = false; // Dodged!
+                  }
 
-                  // Track damage dealt by player
-                  if (projectile.ownerId === 'player') {
-                    setBattleStats(prev => ({
-                      ...prev,
-                      damageDealt: prev.damageDealt + projectile.damage
-                    }));
+                  if (willHit) {
+                    let damage = projectile.damage;
+
+                    // Apply damage resistance for players with mastery
+                    if (target.isPlayer) {
+                      damage = Math.floor(damage * (1 - combatModifiers.damageResistance));
+                      setBattleStats(prev => ({ ...prev, playerTookDamage: true }));
+                    }
+
+                    target.health = Math.max(0, target.health - damage);
+
+                    // Track damage dealt by player
+                    if (projectile.ownerId === 'player') {
+                      progression.recordProgressionEvent({
+                        type: 'damage_dealt',
+                        timestamp: new Date(),
+                        data: {
+                          damage,
+                          weaponUsed: playerBot.weapon,
+                          chassisUsed: playerBot.chassis,
+                          specialUsed: playerBot.special
+                        }
+                      });
+
+                      setBattleStats(prev => ({
+                        ...prev,
+                        damageDealt: prev.damageDealt + damage
+                      }));
+                    }
                   }
                 }
               }
@@ -613,7 +756,7 @@ const BattleArena: React.FC<BattleArenaProps> = ({ playerBot, onBackToBuilder })
     }, 100);
 
     return () => clearInterval(gameLoop);
-  }, [battleEnded, keys]);
+  }, [battleEnded, keys, playerBot, combatModifiers, battleStats.battleStartTime, battleStats.playerTookDamage, progression]);
 
   const isPlayerMoving = keys.has('KeyW') || keys.has('KeyS') || keys.has('KeyA') || keys.has('KeyD') ||
                        keys.has('ArrowUp') || keys.has('ArrowDown') || keys.has('ArrowLeft') || keys.has('ArrowRight');
